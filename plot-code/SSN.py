@@ -102,7 +102,7 @@ cmd = [
     "./SSNplot/pySSN_wrapper.py",
     "-i", "./SSNplot/pareto_sequences.fasta",
     "--metric", "Levenshtein",
-    "--reducer", "UMAP",
+    "--reducer", "tSNE",
     "--grouping", "./SSNplot/seq_groupnames.txt"
 ]
 

@@ -92,12 +92,12 @@ for col, path in zip(colors, csv_files):
              marker='o', markersize=4, linewidth=1.5,
              alpha=0.9, color=col, label=os.path.basename(path))
 
-plt.xlabel('TM-score (minimize)')
-plt.ylabel('Wild-type Recovery (minimize)')
+plt.xlabel('f_structure')
+plt.ylabel('f_recovery')
 plt.title('Pareto Fronts')
 plt.legend(title='CSV Files', fontsize='x-small', markerscale=0.8,
            bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.0)
 
 plt.tight_layout()
-plt.savefig("plot/Distribution_map.png", format="png", dpi=300)
-plt.show()
+plt.savefig("./plot/Distribution_pareto_fronts.png", format="png", dpi=300)
+# plt.show()

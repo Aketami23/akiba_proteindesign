@@ -43,12 +43,12 @@ for col, path in zip(colors, csv_files):
                  label=os.path.basename(path))
 
 plt.xlabel('time series')
-plt.ylabel('TM-score (minimize)')
+plt.ylabel('f_structure')
 plt.ylim(0, -1)
-plt.title('TM-score Best-so-far (Every 100 Steps)')
+plt.title('f_structure Best-so-far (Every 5 Generations)')
 plt.legend(fontsize='x-small', markerscale=0.8,
            bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.0)
 
 plt.tight_layout()
-plt.savefig("./plot/tmscore_minima_every100.png", format="png", dpi=300)
-plt.show()
+plt.savefig("./plot/f_structure_every5gen.png", format="png", dpi=300)
+# plt.show()
