@@ -156,7 +156,7 @@ if __name__ == "__main__":
         groups = [line.strip() for line in lines]
         unique_groups = list(dict.fromkeys(groups))
         if len(unique_groups) <= 10:
-            # 10個以下なら事前定義された色を使用
+            # 10個以下なら tab10カラーマップを使用
             color_palette = plt.cm.tab10(np.linspace(0, 1, len(unique_groups)))
         else:
             # 多い場合はより大きなカラーマップを使用
