@@ -147,8 +147,7 @@ if __name__ == "__main__":
     """
     plot_scatter_coloredでは、embeddingの色を書いたgroupingファイルを読み込みます。
     groupingファイルに、グループ分けを書いて、色は自動で振り分ける関数をかく。
-    以下の関数plot_scatter_modifiedと上記のcheckpointの命名、
-    元のスクリプトでグローバル変数になっていた、
+    以下の関数plot_scatter_modified以外はほぼ元のスクリプトからコピペです
     """
 
     def plot_scatter_modified(embedding):
