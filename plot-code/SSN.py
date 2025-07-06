@@ -99,10 +99,10 @@ import subprocess
 
 cmd = [
     "python",
-    "/Users/ryo/projects/akiba_project/SequenceSimilarityNetwork/pySSN-main/pySSN.py",
+    "./SSNplot/pySSN_wrapper.py",
     "-i", "./SSNplot/pareto_sequences.fasta",
     "--metric", "Levenshtein",
-    "--reducer", "tSNE",
+    "--reducer", "UMAP",
     "--grouping", "./SSNplot/seq_groupnames.txt"
 ]
 
@@ -112,3 +112,5 @@ if result.returncode == 0:
     print("pySSN.py ran successfully!")
 else:
     print(f"pySSN.py failed with return code: {result.returncode}")
+
+
