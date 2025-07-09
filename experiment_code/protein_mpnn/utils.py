@@ -1,12 +1,9 @@
 import torch
 import random
 import numpy as np
-from protein_mpnn_utils import ProteinMPNN
-import numpy as np
-import torch
 import copy
-import random
-from protein_mpnn.protein_mpnn_utils import _scores, _S_to_seq, tied_featurize
+from .protein_mpnn_utils import ProteinMPNN
+from .protein_mpnn_utils import _scores, _S_to_seq, tied_featurize
 
 def initialize_model(seed: int, device: any = None)-> tuple[any, any]:
     from config_utils import load_config

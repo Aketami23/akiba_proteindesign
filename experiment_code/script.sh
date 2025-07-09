@@ -25,7 +25,7 @@ else
 fi
 
 PART="part${max_part}"
-OUTPUT_DIR="${BASE_OUTPUT}/${PART}-results"
+OUTPUT_DIR="${BASE_OUTPUT}/${PART}"
 echo "$PART"
 RESULT_CSV="${BASE_OUTPUT}/${DATE}-${PART}-results.csv"
 
@@ -40,13 +40,16 @@ echo "negative_tm_score,recovery,negative_plddt,raw_jobname,query_sequence" > "$
 
 DUMMY_INPUT="/gs/bs/tga-cddlab/akiba/simulated-annealing_seq_top7/input/20250219/initial-1qys-20250219.fasta"
 
-conda activate /gs/fs/tga-cddlab/akiba/apps/localcolabfold/colabfold-conda
+# conda activate /gs/fs/tga-cddlab/akiba/apps/localcolabfold/colabfold-conda
 
-RUN_SCRIPT="/gs/fs/tga-cddlab/akiba/apps/localcolabfold/colabfold-conda/bin/run_colabfold.py"
+RUN_SCRIPT="/gs/bs/tga-cddlab/akiba/protein_design/experiment_code/main.py"
+
+YAML_CONFIG="/gs/bs/tga-cddlab/akiba/protein_design/experiment_code/config.yaml"
 
 python "$RUN_SCRIPT"\
     "$DUMMY_INPUT" \
     "$OUTPUT_DIR" \
     "$RESULT_CSV" \
+    "$YAML_CONFIG" \
 
 conda deactivate

@@ -1489,7 +1489,7 @@ def run(
         
         # NSFGA-IIでの子集団の生成
         if not first_gen:
-            function1_values = get_column_values(output_csv, solution, "tm_score")
+            function1_values = get_column_values(output_csv, solution, "negative_tm_score")
             function2_values = get_column_values(output_csv, solution, "recovery")
             non_dominated_sorted_solution = fast_non_dominated_sort(function1_values[:],function2_values[:])
             crowding_distance_values=[]
@@ -1770,7 +1770,7 @@ def run(
         
         # NSFGA-IIでの親集団選択
         if not first_gen:
-            function1_values2 = get_column_values(output_csv, solution2, "tm_score")
+            function1_values2 = get_column_values(output_csv, solution2, "negative_tm_score")
             function2_values2 = get_column_values(output_csv, solution2, "recovery")
             non_dominated_sorted_solution2 = fast_non_dominated_sort(function1_values2[:],function2_values2[:])
             crowding_distance_values2=[]
@@ -2255,7 +2255,7 @@ def main():
         calc_extra_ptm=args.calc_extra_ptm,
         use_probs_extra=use_probs_extra,
         ## 追加した部分
-        purposes_pdb=purpose_pdb_path,
+        purpose_pdb=purpose_pdb_path,
         output_csv=args.output_csv,
         generation=_generation,
         population=population_size,

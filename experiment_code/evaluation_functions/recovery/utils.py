@@ -1,7 +1,7 @@
 from config_utils import load_config
 
 def calculate_recovery(query_sequence: str) -> float:
-    _config = load_config()
+    _config = load_config("./config.yaml")
     known_sequence = _config["known_sequence"]["sequence"]
     # proteinMPNN_prediction_seq = config["known_sequence"]["mpnn_predict_sequence"]
     known_seq = known_sequence
