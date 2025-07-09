@@ -1318,6 +1318,7 @@ def run(
     generation: int = None,
     population: int = None,
     sequence_length: int = None,
+    config_path: str = None,
     **kwargs
 ):
     # check what device is available
@@ -1495,7 +1496,7 @@ def run(
             crowding_distance_values=[]
             for i in range(0,len(non_dominated_sorted_solution)):
                 crowding_distance_values.append(crowding_distance(function1_values[:],function2_values[:],non_dominated_sorted_solution[i][:]))
-            queries = generate_offspring_npmm(solution, count)
+            queries = generate_offspring_npmm(solution, count, config_path)
             solution2 = solution[:]
 
         for query in queries:
@@ -1743,9 +1744,9 @@ def run(
 
                 ## 以下で評価する
                 negative_plddt_score = calculate_plddt(new_result_json)
-                negative_tm_score = calculate_tmscore(purpose_pdb, new_result_pdb)
+                negative_tm_score = calculate_tmscore(purpose_pdb, new_result_pdb, config_path)
                 # negative_sol_score = calculate_sol(query_sequence, result_dir)
-                recovery_score = calculate_recovery(query_sequence)
+                recovery_score = calculate_recovery(query_sequence, config_path)
 
                 write_csv(query, negative_tm_score, negative_plddt_score, recovery_score, output_csv)
 
@@ -1831,6 +1832,12 @@ def main():
         "output_csv",
         type=str,
         help="Output path of CSV file.",
+    )
+
+    parser.add_argument(
+        "config_path",
+        type=str,
+        help="Path to the YAML config file.",
     )
     # ここまで
 
@@ -2200,8 +2207,9 @@ def main():
     use_probs_extra = False if args.no_use_probs_extra else True
 
     ## 私が追加した部分
+    _config_path = args.config_path
     from config_utils import load_config
-    _config = load_config("./config.yaml")
+    _config = load_config(_config_path)
     purpose_pdb_path = _config["target_structure"]["pdb_path"]
     _generation = _config["experiment_config"]["generation"]
     population_size = _config["experiment_config"]["population"]
@@ -2259,7 +2267,8 @@ def main():
         output_csv=args.output_csv,
         generation=_generation,
         population=population_size,
-        sequence_length=seq_length
+        sequence_length=seq_length,
+        config_path=_config_path
         ## ここまで
 
     )

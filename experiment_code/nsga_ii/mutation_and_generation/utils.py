@@ -15,9 +15,9 @@ def mutation(sequence: str, number: int, pop_count: int) -> tuple[str, str, None
     
     return results
 
-def mutation_with_mpnn(sequence: str, number: int, pop_count: int, model:str, device: any) -> tuple[str, str, None]:
+def mutation_with_mpnn(config_path: str, sequence: str, number: int, pop_count: int, model:str, device: any) -> tuple[str, str, None]:
     from config_utils import load_config
-    _config = load_config("./config.yaml")
+    _config = load_config(config_path)
     result = ()
     new_header = f"1QYS-Chain_A-TOP7-round_{number + pop_count}"
     num_seq_per_target = 1
@@ -46,13 +46,13 @@ def generate_offspring(solution: any, count: int)-> list[tuple[str, str, None]]:
         pop_count += 1
     return new_queries
 
-def generate_offspring_npmm(solution: any, count: int) -> list[tuple[str, str, None]]:
+def generate_offspring_npmm(solution: any, count: int, config_path: str) -> list[tuple[str, str, None]]:
     new_queries = []
     pop_count = 1
     seed = random.randint(1, 92)
-    model, device = initialize_model(seed)
+    model, device = initialize_model(config_path, seed)
     for i in solution:
-        new_queries.append(mutation_with_mpnn(i, count, pop_count, model, device))
+        new_queries.append(mutation_with_mpnn(config_path, i, count, pop_count, model, device))
         pop_count += 1
     return new_queries
 

@@ -46,10 +46,12 @@ RUN_SCRIPT="/gs/bs/tga-cddlab/akiba/protein_design/experiment_code/main.py"
 
 YAML_CONFIG="/gs/bs/tga-cddlab/akiba/protein_design/experiment_code/config.yaml"
 
+cd /gs/bs/tga-cddlab/akiba/protein_design/experiment_code
+
 python "$RUN_SCRIPT"\
     "$DUMMY_INPUT" \
     "$OUTPUT_DIR" \
     "$RESULT_CSV" \
-    "$YAML_CONFIG" \
+    "$YAML_CONFIG"
 
 conda deactivate

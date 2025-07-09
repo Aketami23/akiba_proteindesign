@@ -24,7 +24,6 @@ def fast_non_dominated_sort(values1, values2):
     rank = [0 for i in range(0, len(values1))]
 
     for p in range(0,len(values1)):
-        print(f"p: {p}")
         S[p]=[]
         n[p]=0
         for q in range(0, len(values1)):

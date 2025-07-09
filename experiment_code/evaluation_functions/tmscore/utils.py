@@ -1,9 +1,9 @@
 import subprocess
 import re
 
-def calculate_tmscore(purpose_pdb: str, new_pdb: str) -> float:
+def calculate_tmscore(purpose_pdb: str, new_pdb: str, config_path: str) -> float:
     from config_utils import load_config
-    _config = load_config("./config.yaml")
+    _config = load_config(config_path)
     usalign_path = _config["usalign_path"]
     tm_command = [
         usalign_path,

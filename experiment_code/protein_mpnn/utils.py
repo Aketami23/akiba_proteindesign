@@ -5,9 +5,9 @@ import copy
 from .protein_mpnn_utils import ProteinMPNN
 from .protein_mpnn_utils import _scores, _S_to_seq, tied_featurize
 
-def initialize_model(seed: int, device: any = None)-> tuple[any, any]:
+def initialize_model(config_path: str, seed: int, device: any = None)-> tuple[any, any]:
     from config_utils import load_config
-    _config = load_config("./config.yaml")
+    _config = load_config(config_path)
     
     torch.manual_seed(seed)
     random.seed(seed)
