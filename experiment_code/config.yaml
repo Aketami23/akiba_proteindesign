@@ -13,5 +13,5 @@ target_structure:
 
 experiment_config:
   generation: 500
-  population: 20
+  population: 2
   mpnn_temperature: 0.3

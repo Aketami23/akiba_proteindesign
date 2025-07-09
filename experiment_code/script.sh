@@ -40,7 +40,7 @@ echo "negative_tm_score,recovery,negative_plddt,raw_jobname,query_sequence" > "$
 
 DUMMY_INPUT="/gs/bs/tga-cddlab/akiba/simulated-annealing_seq_top7/input/20250219/initial-1qys-20250219.fasta"
 
-# conda activate /gs/fs/tga-cddlab/akiba/apps/localcolabfold/colabfold-conda
+conda activate /gs/fs/tga-cddlab/akiba/apps/localcolabfold/colabfold-conda
 
 RUN_SCRIPT="/gs/bs/tga-cddlab/akiba/protein_design/experiment_code/main.py"
 
