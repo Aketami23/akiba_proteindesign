@@ -1,0 +1,17 @@
+protein_mpnn:
+  checkpoint_path: "/gs/fs/tga-cddlab/akiba/apps/localcolabfold/colabfold-conda/lib/python3.10/site-packages/colabfold/vanilla_model_weight/v_48_020.pt"
+
+usalign_path: "/home/2/uy04572/mytools/USalign"
+
+known_sequence:
+  sequence: "DIQVQVNIDDNGKNFDYTYTVTTESELQKVLNELMDYIKKQGAKRVRISITARTKKEAEKFAAILIKVFAELGYNDINVTFDGDTVTVEGQL"
+  mpnn_predict_sequence: "MIKIKVTIKDGNKTIVIEKEVESKEEFEKVLKEIKEIIKKLNPKEVTISVTAETPEEAKEYAEILKKLLKELGYKDIKVELEGNTVTVTGKK"
+  length: 92
+
+target_structure:
+  pdb_path: "/gs/bs/tga-cddlab/akiba/simulated-annealing_seq_top7/input/1qys.pdb"
+
+experiment_config:
+  generation: 500
+  population: 20
+  mpnn_temperature: 0.3

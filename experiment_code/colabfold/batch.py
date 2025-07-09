@@ -9,7 +9,6 @@ import warnings
 from Bio import BiopythonDeprecationWarning # what can possibly go wrong...
 warnings.simplefilter(action='ignore', category=BiopythonDeprecationWarning)
 
-import csv
 import json
 import logging
 import math
@@ -20,18 +19,17 @@ import zipfile
 import shutil
 import pickle
 import gzip
-import subprocess
-import re
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 from io import StringIO
+from silence_tensorflow import silence_tensorflow
+silence_tensorflow()
 
 import importlib_metadata
 import numpy as np
 import pandas
-import pandas as pd
 
 try:
     import alphafold
@@ -75,7 +73,7 @@ from colabfold.alphafold import extra_ptm
 
 from Bio.PDB import MMCIFParser, PDBParser, MMCIF2Dict
 from Bio.PDB.PDBIO import Select
-import glob
+
 # logging settings
 logger = logging.getLogger(__name__)
 import jax
@@ -1242,364 +1240,6 @@ def put_mmciffiles_into_resultdir(
                     print(f"WARNING: {pdb_id} does not exist in {local_pdb_path}.")
 
 
-def calculate_sol(seq, result_dir):
-    sequences = [{'id': 'seq1', 'seq': seq}]
-    fasta_filename = os.path.join(result_dir, "protein-sol-sequence-prediction-software", "tmp.fasta")
-    with open(fasta_filename, "w") as fasta_file:
-        for entry in sequences:
-            fasta_file.write(">" + entry['id'] + "\n")
-            fasta_file.write(entry['seq'] + "\n")
-    script_path = os.path.join(result_dir, "protein-sol-sequence-prediction-software", "multiple_prediction_wrapper_export.sh")
-    subprocess.check_call([script_path, fasta_filename, result_dir])
-    output_file = os.path.join(result_dir, "protein-sol-sequence-prediction-software", "seq_prediction.txt")
-    with open(output_file, "r") as f:
-            results = f.read()
-    match = re.search(r">seq1,[^,]+,\s*([\d.]+)", results)
-    os.remove(output_file)
-    return match.group(1)
-
-def scoring_TMscoreScaledSol(new_pdb, seq, pupose_pdb, result_dir):
-    usalign_path = "/home/2/uy04572/mytools/USalign"
-    tm_command = [
-        usalign_path,
-        pupose_pdb,
-        new_pdb,
-        "-TMscore",
-        "1"
-    ]
-    tm_result = subprocess.run(tm_command, shell=False, capture_output=True, text=True)
-    tm_match = re.search(r"TM-score=\s*([0-9.]+)", tm_result.stdout)
-    tm_score = float(tm_match.group(1))
-    print(f"TMscore: {tm_score}")
-    sol_score = float(calculate_sol(seq, result_dir))
-    print(f"solbility: {sol_score}")
-    
-    return tm_score, sol_score
-
-def get_tm_scores(file_path, query_list):
-    df = pd.read_csv(file_path)
-    tm_scores = []
-    
-    for query in query_list:
-        print(f"query: {query}")
-        matched_rows = df[df['query_sequence'] == query]
-        if matched_rows.empty:
-            tm_scores.append(None)
-        else:
-            tm_scores.append(matched_rows.iloc[0]['tm_score'])
-            
-    return tm_scores
-
-def get_plddtes(file_path, query_list):
-    df = pd.read_csv(file_path)
-    plddts = []
-    
-    for query in query_list:
-        matched_rows = df[df['query_sequence'] == query]
-        if matched_rows.empty:
-            plddts.append(None)
-        else:
-            plddts.append(matched_rows.iloc[0]['plddt'])
-            
-    return plddts
-
-def get_recovery(file_path, query_list):
-    df = pd.read_csv(file_path)
-    recoveries = []
-    
-    for query in query_list:
-        matched_rows = df[df['query_sequence'] == query]
-        if matched_rows.empty:
-            recoveries.append(None)
-        else:
-            recoveries.append(matched_rows.iloc[0]['wild_type_recovery'])
-            
-    return recoveries
-
-#Function to find index of list
-def index_of(a,list):
-    for i in range(0,len(list)):
-        if list[i] == a:
-            return i
-    return -1
-
-#Function to sort by values
-def sort_by_values(list1, values):
-    sorted_list = []
-    while(len(sorted_list)!=len(list1)):
-        if index_of(min(values),values) in list1:
-            sorted_list.append(index_of(min(values),values))
-        values[index_of(min(values),values)] = math.inf
-    return sorted_list
-
-#Function to carry out NSGA-II's fast non dominated sort
-def fast_non_dominated_sort(values1, values2):
-    S=[[] for i in range(0,len(values1))]
-    front = [[]]
-    n=[0 for i in range(0,len(values1))]
-    rank = [0 for i in range(0, len(values1))]
-
-    for p in range(0,len(values1)):
-        print(f"p: {p}")
-        S[p]=[]
-        n[p]=0
-        for q in range(0, len(values1)):
-            if (values1[p] < values1[q] and values2[p] < values2[q]) or (values1[p] <= values1[q] and values2[p] < values2[q]) or (values1[p] < values1[q] and values2[p] <= values2[q]):
-                if q not in S[p]:
-                    S[p].append(q)
-            elif (values1[q] < values1[p] and values2[q] < values2[p]) or (values1[q] <= values1[p] and values2[q] < values2[p]) or (values1[q] < values1[p] and values2[q] <= values2[p]):
-                n[p] = n[p] + 1
-        if n[p]==0:
-            rank[p] = 0
-            if p not in front[0]:
-                front[0].append(p)
-
-    i = 0
-    while(front[i] != []):
-        Q=[]
-        for p in front[i]:
-            for q in S[p]:
-                n[q] =n[q] - 1
-                if( n[q]==0):
-                    rank[q]=i+1
-                    if q not in Q:
-                        Q.append(q)
-        i = i+1
-        front.append(Q)
-
-    del front[len(front)-1]
-    return front
-
-#Function to calculate crowding distance
-def crowding_distance(values1, values2, front):
-    distance = [0 for i in range(0,len(front))]
-    sorted1 = sort_by_values(front, values1[:])
-    sorted2 = sort_by_values(front, values2[:])
-    distance[0] = 4444444444444444
-    distance[len(front) - 1] = 4444444444444444
-    for k in range(1,len(front)-1):
-        distance[k] = distance[k]+ (values1[sorted1[k+1]] - values2[sorted1[k-1]])/(max(values1)-min(values1))
-    for k in range(1,len(front)-1):
-        distance[k] = distance[k]+ (values1[sorted2[k+1]] - values2[sorted2[k-1]])/(max(values2)-min(values2))
-    return distance
-
-def mutation(sequence, number, pop_count):
-    amino_acids = "ACDEFGHIKLMNPQRSTVWY"
-    results = []
-    new_header = f"1QYS-Chain_A-TOP7-round_{number+ pop_count}"
-    print(f"new_header: {new_header}")
-
-    seq_list = list(sequence)
-    pos = random.randint(0, len(seq_list) - 1)
-    seq_list[pos] = random.choice([aa for aa in amino_acids if aa != seq_list[pos]])
-    mutated_sequence = "".join(seq_list)
-    results = (new_header, mutated_sequence, None)
-    
-    return results
-
-def calculate_mean_plddt(json_file_path):
-    with open(json_file_path, 'r') as f:
-        scores = json.load(f)
-    
-    if "plddt" in scores:
-        return np.mean(scores["plddt"])
-    return None
-
-def scoring_TMscorePlddt(new_pdb, new_json, pupose_pdb):
-    usalign_path = "/home/2/uy04572/mytools/USalign"
-    tm_command = [
-        usalign_path,
-        pupose_pdb,
-        new_pdb,
-        "-TMscore",
-        "1"
-    ]
-    tm_result = subprocess.run(tm_command, shell=False, capture_output=True, text=True)
-    tm_match = re.search(r"TM-score=\s*([0-9.]+)", tm_result.stdout)
-    tm_score = float(tm_match.group(1))
-    print(f"new_tmscore: {tm_score}")
-    plddt_score = float(calculate_mean_plddt(new_json))
-    print(f"plddt: {plddt_score}")
-    
-    return tm_score, plddt_score
-
-def write_csv(query, tm_score, sol, plddt_score, csv_path):
-    raw_jobname, query_sequence, a3m_lines = query
-    # wild_type = "DIQVQVNIDDNGKNFDYTYTVTTESELQKVLNELMDYIKKQGAKRVRISITARTKKEAEKFAAILIKVFAELGYNDINVTFDGDTVTVEGQL"
-    proteinMPNN_prediction = "MIKIKVTIKDGNKTIVIEKEVESKEEFEKVLKEIKEIIKKLNPKEVTISVTAETPEEAKEYAEILKKLLKELGYKDIKVELEGNTVTVTGKK"
-    matches = sum(s1 == s2 for s1, s2 in zip(query_sequence, proteinMPNN_prediction))
-    wild_type_recovery = matches / len(proteinMPNN_prediction) if len(proteinMPNN_prediction) > 0 else 0
-
-    with open(csv_path, mode='a', newline='') as csvfile:
-        csv_writer = csv.writer(csvfile)
-        csv_writer.writerow([-tm_score, -sol, wild_type_recovery, plddt_score, raw_jobname, query_sequence])
-    
-    return None
-
-def initialize_model(seed=37, device=None):
-    import torch
-    import random
-    import numpy as np
-    from colabfold.protein_mpnn_utils import ProteinMPNN
-    
-    torch.manual_seed(seed)
-    random.seed(seed)
-    np.random.seed(seed)   
-    
-    hidden_dim = 128
-    num_layers = 3 
-    checkpoint_path = "/gs/fs/tga-cddlab/akiba/apps/localcolabfold/colabfold-conda/lib/python3.10/site-packages/colabfold/vanilla_model_weight/v_48_020.pt"
-    
-    if device is None:
-        device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    
-    checkpoint = torch.load(checkpoint_path, map_location=device) 
-    backbone_noise = 0.00
-    model = ProteinMPNN(ca_only=False, num_letters=21, node_features=hidden_dim, 
-                        edge_features=hidden_dim, hidden_dim=hidden_dim, 
-                        num_encoder_layers=num_layers, num_decoder_layers=num_layers, 
-                        augment_eps=backbone_noise, k_neighbors=checkpoint['num_edges'])
-    model.to(device)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model.eval()
-    
-    return model, device
-
-def run_inference(model, init_seq, design_only_positions, num_seq_per_target, sampling_temp=0.1, seed=37, batch_size=1, device=None):
-    import numpy as np
-    import torch
-    import copy
-    import random
-    
-    from colabfold.protein_mpnn_utils import _scores, _S_to_seq, tied_featurize
-
-    torch.manual_seed(seed)
-    random.seed(seed)
-    np.random.seed(seed)   
-    
-    if device is None:
-        device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    
-    NUM_BATCHES = num_seq_per_target//batch_size
-    BATCH_COPIES = batch_size
-    temperatures = [float(sampling_temp)]
-    omit_AAs_list = []
-    alphabet = 'ACDEFGHIKLMNPQRSTVWYX'   
-    omit_AAs_np = np.array([AA in omit_AAs_list for AA in alphabet]).astype(np.float32)
-    chain_id_dict = {'1qys': [['A'], []]}
-    fix_positions = [i for i in range(1, 93) if i not in design_only_positions]
-    fixed_positions_dict = {'1qys': {'A': fix_positions}}
-    
-    pssm_dict = None
-    omit_AA_dict = None
-    tied_positions_dict = None
-    bias_by_res_dict = None
-    bias_AAs_np = np.zeros(len(alphabet))
-    wild_type = "DIQVQVNIDDNGKNFDYTYTVTTESELQKVLNELMDYIKKQGAKRVRISITARTKKEAEKFAAILIKVFAELGYNDINVTFDGDTVTVEGQL"
-    protein = {'seq_chain_A': init_seq, 
-               'coords_chain_A': {'N_chain_A': [[-4.522, 18.306, 17.409], [-1.36, 16.714, 16.297], [-1.567, 13.342, 16.105], [0.151, 10.426, 16.683], [0.118, 7.066, 16.055], [1.578, 4.084, 16.673], [1.746, 0.755, 15.891], [3.073, -2.269, 16.587], [3.225, -5.621, 15.824], [4.055, -8.971, 16.737], [4.09, -12.081, 17.079], [2.572, -13.164, 19.895], [3.245, -10.775, 21.143], [2.4, -7.56, 21.313], [2.902, -4.187, 20.617], [1.947, -0.934, 21.394], [2.343, 2.29, 20.623], [1.691, 5.609, 21.457], [1.784, 8.929, 20.649], [1.867, 12.525, 20.893], [2.444, 15.212, 19.135], [3.717, 18.531, 18.327], [5.28, 20.203, 16.327], [6.796, 19.119, 14.247], [9.234, 19.085, 14.266], [9.885, 18.071, 16.713], [8.883, 15.919, 15.895], [10.512, 14.723, 14.225], [11.984, 13.738, 16.128], [10.42, 11.824, 17.36], [10.016, 10.262, 15.162], [12.719, 9.404, 14.389], [13.18, 8.098, 16.795], [11.213, 6.021, 16.73], [12.136, 4.544, 14.621], [14.338, 3.255, 15.679], [13.249, 1.597, 17.806], [11.805, -0.192, 16.186], [13.817, -1.255, 14.454], [15.287, -2.736, 16.207], [13.214, -4.548, 17.331], [12.452, -5.789, 14.942], [9.991, -6.65, 13.567], [7.482, -8.527, 11.748], [5.116, -7.324, 10.808], [4.257, -3.875, 10.796], [2.52, -0.975, 11.776], [1.63, 2.395, 11.252], [-0.093, 5.239, 12.002], [-1.067, 8.538, 11.408], [-2.753, 11.261, 12.556], [-3.523, 13.994, 10.965], [-3.96, 17.596, 10.49], [-5.017, 18.477, 8.098], [-5.929, 16.874, 4.998], [-3.99, 17.291, 2.986], [-1.831, 17.546, 4.5], [-1.595, 15.104, 5.738], [-0.698, 13.742, 3.588], [1.894, 14.733, 3.151], [2.977, 13.589, 5.346], [2.61, 10.899, 4.839], [4.388, 10.612, 2.815], [6.703, 10.929, 4.248], [6.599, 8.766, 6.103], [6.748, 6.723, 4.282], [9.366, 6.661, 3.31], [10.601, 6.102, 5.689], [9.705, 3.425, 6.385], [10.631, 2.143, 4.058], [13.474, 2.552, 4.07], [13.978, 1.145, 6.496], [13.731, -1.453, 5.492], [11.063, -2.447, 5.168], [9.073, -3.396, 2.657], [6.556, -3.874, 1.285], [4.163, -1.91, 1.214], [1.12, -0.449, 2.537], [-0.875, 2.291, 2.074], [-3.226, 4.18, 3.499], [-5.802, 6.522, 3.457], [-7.924, 8.13, 5.676], [-10.026, 10.352, 5.924], [-8.545, 12.754, 7.733], [-6.652, 11.227, 8.713], [-3.816, 9.303, 8.191], [-2.79, 6.067, 7.33], [-0.101, 4.112, 7.284], [0.969, 0.996, 6.638], [3.369, -1.469, 6.897], [5.184, -4.402, 5.733], [7.836, -6.589, 6.494]], 'CA_chain_A': [[-3.061, 18.228, 17.122], [-0.823, 15.562, 15.568], [-1.632, 12.078, 16.814], [0.937, 9.342, 16.107], [-0.196, 5.735, 16.561], [2.499, 3.068, 16.186], [1.357, -0.569, 16.361], [3.976, -3.337, 16.187], [2.802, -6.96, 16.22], [5.107, -9.95, 16.527], [3.876, -13.307, 17.848], [2.371, -13.029, 21.33], [3.79, -9.52, 21.64], [1.872, -6.404, 20.6], [3.318, -2.92, 21.197], [1.124, 0.181, 20.939], [2.936, 3.578, 20.999], [0.857, 6.756, 21.147], [2.468, 10.196, 20.916], [1.136, 13.706, 20.489], [3.462, 16.223, 18.921], [3.369, 19.839, 17.793], [6.552, 20.818, 15.953], [7.267, 18.538, 12.994], [10.637, 19.11, 14.647], [9.9, 17.055, 17.762], [8.286, 14.82, 15.147], [11.724, 14.081, 13.747], [12.465, 13.094, 17.348], [9.562, 10.658, 17.497], [10.34, 9.47, 13.992], [14.011, 8.779, 14.631], [12.972, 7.212, 17.938], [10.469, 4.828, 16.342], [13.021, 3.824, 13.725], [15.156, 2.372, 16.497], [12.42, 0.561, 18.424], [11.467, -1.188, 15.177], [15.015, -1.937, 13.96], [15.498, -3.693, 17.278], [12.211, -5.606, 17.359], [12.412, -6.472, 13.661], [8.706, -7.334, 13.446], [7.002, -8.787, 10.405], [4.16, -6.279, 10.484], [4.32, -2.6, 11.511], [1.516, -0.009, 11.362], [1.776, 3.725, 11.785], [-1.128, 6.139, 11.519], [-0.899, 9.893, 11.887], [-3.922, 12.081, 12.351], [-3.079, 15.335, 10.624], [-4.983, 18.636, 10.528], [-5.615, 18.505, 6.762], [-5.522, 15.766, 4.148], [-2.758, 17.624, 2.269], [-0.786, 17.378, 5.496], [-1.528, 13.653, 5.853], [0.058, 13.318, 2.423], [3.292, 15.029, 3.42], [3.366, 12.61, 6.358], [2.651, 9.602, 4.194], [5.642, 10.619, 2.076], [7.722, 10.737, 5.275], [6.501, 7.412, 6.591], [7.119, 5.776, 3.255], [10.819, 6.592, 3.311], [10.959, 5.442, 6.942], [9.472, 1.995, 6.184], [11.491, 1.668, 2.986], [14.818, 2.483, 4.606], [14.025, 0.022, 7.431], [13.465, -2.739, 4.875], [9.685, -2.857, 4.949], [8.89, -3.09, 1.246], [5.219, -4.028, 0.7], [3.425, -0.943, 2.015], [-0.255, -0.026, 2.299], [-1.09, 3.651, 2.511], [-4.666, 4.392, 3.515], [-6.197, 7.793, 4.034], [-9.27, 8.081, 6.224], [-10.25, 11.713, 6.358], [-7.275, 13.427, 7.979], [-5.799, 10.202, 9.28], [-3.125, 8.459, 7.218], [-2.314, 4.826, 7.917], [0.909, 3.414, 6.508], [1.283, -0.296, 7.233], [4.345, -2.181, 6.106], [5.609, -5.756, 6.069], [9.264, -6.783, 6.273]], 'C_chain_A': [[-2.664, 16.993, 16.324], [-0.721, 14.309, 16.433], [-0.907, 10.95, 16.066], [0.671, 8.008, 16.803], [0.719, 4.713, 15.881], [2.103, 1.7, 16.756], [2.224, -1.684, 15.748], [3.531, -4.697, 16.73], [3.892, -7.97, 15.878], [4.97, -11.157, 17.446], [3.792, -13.129, 19.361], [2.938, -11.774, 21.965], [3.313, -8.363, 20.774], [2.268, -5.109, 21.338], [2.488, -1.82, 20.56], [1.671, 1.527, 21.481], [2.048, 4.728, 20.53], [1.589, 8.007, 21.589], [1.581, 11.325, 20.413], [2.205, 14.758, 20.356], [2.881, 17.499, 18.343], [4.686, 20.523, 17.473], [7.033, 20.385, 14.576], [8.782, 18.481, 13.17], [10.764, 18.025, 15.711], [9.258, 15.81, 17.168], [9.475, 14.012, 14.649], [12.31, 13.296, 14.916], [11.731, 11.776, 17.556], [9.898, 9.703, 16.364], [11.608, 8.685, 14.235], [13.87, 7.727, 15.722], [12.233, 5.917, 17.574], [11.321, 3.923, 15.466], [13.869, 2.835, 14.511], [14.343, 1.25, 17.135], [12.126, -0.564, 17.425], [12.677, -1.933, 14.605], [15.238, -3.089, 14.927], [14.502, -4.852, 17.267], [12.149, -6.428, 16.073], [11.154, -7.305, 13.501], [8.267, -7.491, 12.002], [6.082, -7.662, 9.961], [4.244, -5.06, 11.406], [3.326, -1.588, 10.915], [1.74, 1.333, 12.036], [0.705, 4.599, 11.157], [-0.951, 7.489, 12.205], [-2.116, 10.712, 11.531], [-3.415, 13.493, 12.189], [-4.249, 16.316, 10.7], [-5.731, 18.711, 9.197], [-5.102, 17.346, 5.926], [-4.219, 16.045, 3.395], [-1.566, 17.464, 3.204], [-0.515, 15.871, 5.628], [-0.674, 13.071, 4.736], [1.541, 13.547, 2.665], [3.824, 13.998, 4.406], [3.498, 11.225, 5.77], [3.96, 9.509, 3.414], [6.791, 10.351, 3.055], [7.762, 9.285, 5.741], [6.912, 6.387, 5.551], [8.615, 5.568, 3.244], [11.296, 5.881, 4.574], [10.872, 3.92, 6.791], [10.4, 1.397, 5.132], [12.911, 1.486, 3.508], [14.914, 1.282, 5.565], [13.69, -1.342, 6.817], [12.039, -3.207, 4.697], [9.433, -2.436, 3.506], [7.535, -3.32, 0.577], [4.327, -3.171, 1.6], [2.025, -0.548, 1.563], [-0.386, 1.364, 2.884], [-2.586, 3.842, 2.393], [-5.0, 5.729, 4.145], [-7.634, 7.636, 4.481], [-9.498, 9.482, 6.767], [-8.911, 12.403, 6.503], [-6.266, 12.493, 8.617], [-5.142, 9.365, 8.19], [-2.58, 7.225, 7.935], [-1.395, 4.069, 6.971], [1.26, 2.131, 7.257], [2.266, -1.019, 6.321], [4.665, -3.567, 6.629], [7.071, -5.898, 5.659], [9.604, -7.603, 5.021]], 'O_chain_A': [[-3.515, 16.306, 15.754], [0.091, 14.222, 17.355], [-1.306, 10.567, 14.965], [0.957, 7.837, 17.983], [0.658, 4.513, 14.674], [2.114, 1.508, 17.966], [2.14, -1.992, 14.559], [3.465, -4.9, 17.944], [4.569, -7.85, 14.85], [5.649, -11.243, 18.468], [4.817, -12.98, 20.028], [3.099, -11.711, 23.185], [3.754, -8.207, 19.639], [2.022, -4.958, 22.538], [2.326, -1.787, 19.346], [1.496, 1.855, 22.652], [1.694, 4.814, 19.36], [1.996, 8.119, 22.746], [0.683, 11.12, 19.599], [2.833, 15.129, 21.342], [1.714, 17.547, 17.935], [5.175, 21.315, 18.27], [7.608, 21.179, 13.834], [9.508, 17.917, 12.351], [11.634, 17.158, 15.624], [9.094, 14.794, 17.842], [9.456, 12.784, 14.643], [13.031, 12.315, 14.725], [12.331, 10.751, 17.887], [10.051, 8.496, 16.569], [11.579, 7.454, 14.286], [14.35, 6.605, 15.584], [12.58, 4.83, 18.057], [11.229, 2.702, 15.544], [14.082, 1.7, 14.085], [14.695, 0.07, 17.008], [12.195, -1.745, 17.771], [12.57, -3.121, 14.295], [15.336, -4.253, 14.534], [14.892, -6.013, 17.198], [11.838, -7.621, 16.111], [11.23, -8.524, 13.317], [8.625, -6.691, 11.135], [6.256, -7.102, 8.881], [4.294, -5.187, 12.625], [3.297, -1.359, 9.715], [2.013, 1.414, 13.231], [0.578, 4.66, 9.933], [-0.674, 7.573, 13.402], [-2.486, 10.825, 10.359], [-2.919, 14.098, 13.139], [-5.389, 15.916, 10.939], [-6.929, 18.979, 9.17], [-3.968, 16.892, 6.107], [-3.422, 15.135, 3.192], [-0.433, 17.274, 2.764], [0.633, 15.424, 5.622], [-0.023, 12.038, 4.91], [2.357, 12.657, 2.427], [4.972, 13.578, 4.315], [4.373, 10.463, 6.164], [4.578, 8.457, 3.367], [7.737, 9.629, 2.737], [8.816, 8.652, 5.778], [7.378, 5.299, 5.887], [9.074, 4.433, 3.201], [12.268, 5.125, 4.533], [11.842, 3.216, 7.044], [10.869, 0.265, 5.276], [13.481, 0.397, 3.41], [15.805, 0.457, 5.434], [13.367, -2.282, 7.535], [11.81, -4.287, 4.152], [9.581, -1.257, 3.162], [7.395, -3.014, -0.605], [3.796, -3.643, 2.609], [1.779, -0.336, 0.382], [-0.009, 1.599, 4.028], [-3.154, 3.663, 1.319], [-4.52, 6.055, 5.233], [-8.448, 7.043, 3.776], [-9.176, 9.781, 7.915], [-8.212, 12.608, 5.51], [-5.171, 12.907, 9.004], [-5.826, 8.797, 7.346], [-1.997, 7.316, 9.019], [-1.844, 3.485, 5.978], [1.736, 2.164, 8.392], [2.032, -1.166, 5.114], [4.434, -3.886, 7.799], [7.498, -5.373, 4.628], [10.488, -7.171, 4.243]]}, 
-               'name': '1qys', 
-               'num_of_chains': 1, 
-               'seq': init_seq}
-
-    # Validation epoch
-    with torch.no_grad():
-        all_probs_list = []
-        all_log_probs_list = []
-        S_sample_list = []
-        batch_clones = [copy.deepcopy(protein) for i in range(BATCH_COPIES)]
-        X, S, mask, _, chain_M, chain_encoding_all, chain_list_list, visible_list_list, masked_list_list, masked_chain_length_list_list, chain_M_pos, omit_AA_mask, residue_idx, dihedral_mask, tied_pos_list_of_lists_list, pssm_coef, pssm_bias, pssm_log_odds_all, bias_by_res_all, tied_beta = tied_featurize(batch_clones, device, chain_id_dict, fixed_positions_dict, omit_AA_dict, tied_positions_dict, pssm_dict, bias_by_res_dict, ca_only=False)
-        pssm_log_odds_mask = (pssm_log_odds_all > 0.0).float() #1.0 for true, 0.0 for false
-        randn_1 = torch.randn(chain_M.shape, device=X.device)
-        log_probs = model(X, S, mask, chain_M*chain_M_pos, residue_idx, chain_encoding_all, randn_1)
-        mask_for_loss = mask*chain_M*chain_M_pos
-        scores = _scores(S, log_probs, mask_for_loss) #score only the redesigned part
-        global_scores = _scores(S, log_probs, mask) #score the whole structure-sequence
-        
-        # Generate sequences
-        for temp in temperatures:
-            for j in range(NUM_BATCHES):
-                randn_2 = torch.randn(chain_M.shape, device=X.device)
-                sample_dict = model.sample(X, randn_2, S, chain_M, chain_encoding_all, residue_idx, mask=mask, temperature=temp, omit_AAs_np=omit_AAs_np, bias_AAs_np=bias_AAs_np, chain_M_pos=chain_M_pos, omit_AA_mask=omit_AA_mask, pssm_coef=pssm_coef, pssm_bias=pssm_bias, pssm_multi=0.0, pssm_log_odds_flag=bool(0), pssm_log_odds_mask=pssm_log_odds_mask, pssm_bias_flag=bool(0), bias_by_res=bias_by_res_all)
-                S_sample = sample_dict["S"] 
-                    
-                log_probs = model(X, S_sample, mask, chain_M*chain_M_pos, residue_idx, chain_encoding_all, randn_2, use_input_decoding_order=True, decoding_order=sample_dict["decoding_order"])
-                mask_for_loss = mask*chain_M*chain_M_pos
-                scores = _scores(S_sample, log_probs, mask_for_loss)
-                scores = scores.cpu().data.numpy()
-                
-                global_scores = _scores(S_sample, log_probs, mask) #score the whole structure-sequence
-                global_scores = global_scores.cpu().data.numpy()
-                
-                all_probs_list.append(sample_dict["probs"].cpu().data.numpy())
-                all_log_probs_list.append(log_probs.cpu().data.numpy())
-                S_sample_list.append(S_sample.cpu().data.numpy())
-                for b_ix in range(BATCH_COPIES):
-                    seq_recovery_rate = torch.sum(torch.sum(torch.nn.functional.one_hot(S[b_ix], 21)*torch.nn.functional.one_hot(S_sample[b_ix], 21),axis=-1)*mask_for_loss[b_ix])/torch.sum(mask_for_loss[b_ix])
-                    seq = _S_to_seq(S_sample[b_ix], chain_M[b_ix])
-                    
-                    matches = sum(s1 == s2 for s1, s2 in zip(seq, wild_type))
-                    wild_type_recovery = matches / len(wild_type) if len(wild_type) > 0 else 0                    
-                    seq = _S_to_seq(S_sample[b_ix], chain_M[b_ix])
-    return seq
-
-def mutation_with_mpnn(sequence, number, pop_count, model, device):
-    results = []
-    new_header = f"1QYS-Chain_A-TOP7-round_{number+ pop_count}"
-    num_seq_per_target = 1
-    sampling_temp = 0.3
-    seed = random.randint(1, 92)
-    batch_size = 1
-    seq_length = len(sequence)
-    random.seed(None)
-    random_position = random.randint(1, seq_length)
-    design_only_positions = []
-    for pos in [random_position - 1, random_position, random_position + 1]:
-        if 1 <= pos <= seq_length:
-            design_only_positions.append(pos)
-
-    mutated_sequence = run_inference(model, sequence, design_only_positions, num_seq_per_target, sampling_temp, seed, batch_size, device)
-    results = (new_header, mutated_sequence, None)
-    return results
-
-def gen_offspring(solution, count):
-    new_queries = []
-    pop_count = 1
-    for i in solution:
-        new_queries.append(mutation(i, count, pop_count))
-        pop_count += 1
-    return new_queries
-
-def gen_offspring_npmm(solution, count):
-    new_queries = []
-    pop_count = 1
-    seed = random.randint(1, 92)
-    model, device = initialize_model(seed)
-    for i in solution:
-        new_queries.append(mutation_with_mpnn(i, count, pop_count, model, device))
-        pop_count += 1
-    return new_queries
-    
-def get_new_files(output_dir, name):
-    search_pdb = f"{output_dir}/{name}_unrelaxed_rank_001*"
-    matching_pdb = glob.glob(search_pdb)
-    search_json = f"{output_dir}/{name}_scores_rank_001_alphafold2_ptm_model_1*"
-    matching_json = glob.glob(search_json)
-    if matching_pdb:
-        return matching_pdb[0],matching_json[0]
-    else:
-        return None
-
-def generate_sequence_list(seq_length, num_sequences):
-    amino_acids = "ACDEFGHIKLMNPQRSTVWY"
-    result = []
-    for i in range(1, num_sequences + 1):
-        seq_id = f"1QYS-Chain_A-TOP7-round_{i}"
-        sequence = ''.join(random.choices(amino_acids, k=seq_length))
-        result.append((seq_id, sequence, None))
-    return result
-
-
 def run(
     queries: List[Tuple[str, Union[str, List[str]], Optional[List[str]]]],
     result_dir: Union[str, Path],
@@ -1647,11 +1287,6 @@ def run(
     feature_dict_callback: Callable[[Any], Any] = None,
     calc_extra_ptm: bool = False,
     use_probs_extra: bool = True,
-    purposes_pdb: str = None,
-    output_csv: str = None,
-    generation: int = None,
-    population: int = None,
-    sequence_length: int = None,
     **kwargs
 ):
     # check what device is available
@@ -1811,311 +1446,256 @@ def run(
     pad_len = 0
     ranks, metrics = [],[]
     first_job = True
-    first_gen = True
-    max_gen = generation
-    gen_no = 0
-    count = 0
-    pop_size = population
-    seq_len = sequence_length
-    solution = []
-    queries = generate_sequence_list(seq_len, pop_size)
-    # queries = [('1QYS-Chain_A-TOP7-round_1', 'YHINMYCCDFKRSRVHHFTFMAGDWWFDSGCKKMLWNMCYKPVQDHIHVMVSYYQWYKHRFVLCITHYIFINWYMPTWMSLDSYAVTYRITM', None), ('1QYS-Chain_A-TOP7-round_2', 'MLQCIIHMKCGSRTYIKYAQAEFQELVWNKKACNLHLPQHSWMHFLMWPSEEAPWGEIPAKFHVLRAWVKEICPWCYYVDDNSIDCMWIRTI', None)]
-    while(gen_no<max_gen):
-        if not first_gen:
-            function1_values = get_tm_scores(output_csv, solution)
-            function2_values = get_recovery(output_csv, solution)
-            non_dominated_sorted_solution = fast_non_dominated_sort(function1_values[:],function2_values[:])
-            crowding_distance_values=[]
-            for i in range(0,len(non_dominated_sorted_solution)):
-                crowding_distance_values.append(crowding_distance(function1_values[:],function2_values[:],non_dominated_sorted_solution[i][:]))
+    job_number = 0
+    for job_number, (raw_jobname, query_sequence, a3m_lines) in enumerate(queries):
+        if jobname_prefix is not None:
+            # pad job number based on number of queries
+            fill = len(str(len(queries)))
+            jobname = safe_filename(jobname_prefix) + "_" + str(job_number).zfill(fill)
+            job_number += 1
+        else:
+            jobname = safe_filename(raw_jobname)
+            print(f"jobname: {jobname}")
+            print(f"queris: {queries}")
 
-            queries = gen_offspring_npmm(solution, count)
-            solution2 = solution[:]
-        for query in queries:
-            raw_jobname, query_sequence, a3m_lines = query
-            if jobname_prefix is not None:
-                jobname = raw_jobname
+        #######################################
+        # check if job has already finished
+        #######################################
+        # In the colab version and with --zip we know we're done when a zip file has been written
+        result_zip = result_dir.joinpath(jobname).with_suffix(".result.zip")
+        if keep_existing_results and result_zip.is_file():
+            logger.info(f"Skipping {jobname} (result.zip)")
+            continue
+        # In the local version we use a marker file
+        is_done_marker = result_dir.joinpath(jobname + ".done.txt")
+        if keep_existing_results and is_done_marker.is_file():
+            logger.info(f"Skipping {jobname} (already done)")
+            continue
+
+        seq_len = len("".join(query_sequence))
+        logger.info(f"Query {job_number + 1}/{len(queries)}: {jobname} (length {seq_len})")
+
+        ###########################################
+        # generate MSA (a3m_lines) and templates
+        ###########################################
+        try:
+            pickled_msa_and_templates = result_dir.joinpath(f"{jobname}.pickle")
+            if pickled_msa_and_templates.is_file():
+                with open(pickled_msa_and_templates, 'rb') as f:
+                    (unpaired_msa, paired_msa, query_seqs_unique, query_seqs_cardinality, template_features) = pickle.load(f)
+                logger.info(f"Loaded {pickled_msa_and_templates}")
+
             else:
-                jobname = raw_jobname
+                if a3m_lines is None:
+                    (unpaired_msa, paired_msa, query_seqs_unique, query_seqs_cardinality, template_features) \
+                    = get_msa_and_templates(jobname, query_sequence, a3m_lines, result_dir, msa_mode, use_templates,
+                        custom_template_path, pair_mode, pairing_strategy, host_url, user_agent)
 
-            #######################################
-            # check if job has already finished
-            #######################################
-            # In the colab version and with --zip we know we're done when a zip file has been written
-            result_zip = result_dir.joinpath(jobname).with_suffix(".result.zip")
-            if keep_existing_results and result_zip.is_file():
-                logger.info(f"Skipping {jobname} (result.zip)")
-                continue
-            # In the local version we use a marker file
-            is_done_marker = result_dir.joinpath(jobname + ".done.txt")
-            if keep_existing_results and is_done_marker.is_file():
-                logger.info(f"Skipping {jobname} (already done)")
-                continue
+                elif a3m_lines is not None:
+                    (unpaired_msa, paired_msa, query_seqs_unique, query_seqs_cardinality, template_features) \
+                    = unserialize_msa(a3m_lines, query_sequence)
+                    if use_templates:
+                        (_, _, _, _, template_features) \
+                            = get_msa_and_templates(jobname, query_seqs_unique, unpaired_msa, result_dir, 'single_sequence', use_templates,
+                                custom_template_path, pair_mode, pairing_strategy, host_url, user_agent)
 
-            seq_len = len("".join(query_sequence))
-            logger.info(f"Query {count + 1}/{len(queries)}: {jobname} (length {seq_len})")
+                if num_models == 0:
+                    with open(pickled_msa_and_templates, 'wb') as f:
+                        pickle.dump((unpaired_msa, paired_msa, query_seqs_unique, query_seqs_cardinality, template_features), f)
+                    logger.info(f"Saved {pickled_msa_and_templates}")
 
-            ###########################################
-            # generate MSA (a3m_lines) and templates
-            ###########################################
+            # save a3m
+            msa = msa_to_str(unpaired_msa, paired_msa, query_seqs_unique, query_seqs_cardinality)
+            result_dir.joinpath(f"{jobname}.a3m").write_text(msa)
+
+        except Exception as e:
+            logger.exception(f"Could not get MSA/templates for {jobname}: {e}")
+            continue
+
+        #######################
+        # generate features
+        #######################
+        try:
+            (feature_dict, domain_names) \
+            = generate_input_feature(query_seqs_unique, query_seqs_cardinality, unpaired_msa, paired_msa,
+                                     template_features, is_complex, model_type, max_seq=max_seq)
+
+            # to allow display of MSA info during colab/chimera run (thanks tomgoddard)
+            if feature_dict_callback is not None:
+                feature_dict_callback(feature_dict)
+
+        except Exception as e:
+            logger.exception(f"Could not generate input features {jobname}: {e}")
+            continue
+
+        ###############
+        # save plots not requiring prediction
+        ###############
+
+        result_files = []
+
+        # make msa plot
+        msa_plot = plot_msa_v2(feature_dict, dpi=dpi)
+        coverage_png = result_dir.joinpath(f"{jobname}_coverage.png")
+        msa_plot.savefig(str(coverage_png), bbox_inches='tight')
+        msa_plot.close()
+        result_files.append(coverage_png)
+
+        if use_templates:
+            templates_file = result_dir.joinpath(f"{jobname}_template_domain_names.json")
+            templates_file.write_text(json.dumps(domain_names))
+            result_files.append(templates_file)
+
+        result_files.append(result_dir.joinpath(jobname + ".a3m"))
+        result_files += [bibtex_file, config_out_file]
+
+        ######################
+        # predict structures
+        ######################
+        if num_models > 0:
             try:
-                pickled_msa_and_templates = result_dir.joinpath(f"{jobname}.pickle")
-                if pickled_msa_and_templates.is_file():
-                    with open(pickled_msa_and_templates, 'rb') as f:
-                        (unpaired_msa, paired_msa, query_seqs_unique, query_seqs_cardinality, template_features) = pickle.load(f)
-                    logger.info(f"Loaded {pickled_msa_and_templates}")
+                # get list of lengths
+                query_sequence_len_array = sum([[len(x)] * y
+                    for x,y in zip(query_seqs_unique, query_seqs_cardinality)],[])
 
-                else:
-                    if a3m_lines is None:
-                        (unpaired_msa, paired_msa, query_seqs_unique, query_seqs_cardinality, template_features) \
-                        = get_msa_and_templates(jobname, query_sequence, a3m_lines, result_dir, msa_mode, use_templates,
-                            custom_template_path, pair_mode, pairing_strategy, host_url, user_agent)
+                # decide how much to pad (to avoid recompiling)
+                if seq_len > pad_len:
+                    if isinstance(recompile_padding, float):
+                        pad_len = math.ceil(seq_len * recompile_padding)
+                    else:
+                        pad_len = seq_len + recompile_padding
+                    pad_len = min(pad_len, max_len)
 
-                    elif a3m_lines is not None:
-                        (unpaired_msa, paired_msa, query_seqs_unique, query_seqs_cardinality, template_features) \
-                        = unserialize_msa(a3m_lines, query_sequence)
-                        if use_templates:
-                            (_, _, _, _, template_features) \
-                                = get_msa_and_templates(jobname, query_seqs_unique, unpaired_msa, result_dir, 'single_sequence', use_templates,
-                                    custom_template_path, pair_mode, pairing_strategy, host_url, user_agent)
-
-                    if num_models == 0:
-                        with open(pickled_msa_and_templates, 'wb') as f:
-                            pickle.dump((unpaired_msa, paired_msa, query_seqs_unique, query_seqs_cardinality, template_features), f)
-                        logger.info(f"Saved {pickled_msa_and_templates}")
-
-                # save a3m
-                msa = msa_to_str(unpaired_msa, paired_msa, query_seqs_unique, query_seqs_cardinality)
-                result_dir.joinpath(f"{jobname}.a3m").write_text(msa)
-
-            except Exception as e:
-                logger.exception(f"Could not get MSA/templates for {jobname}: {e}")
-                continue
-
-            #######################
-            # generate features
-            #######################
-            try:
-                (feature_dict, domain_names) \
-                = generate_input_feature(query_seqs_unique, query_seqs_cardinality, unpaired_msa, paired_msa,
-                                        template_features, is_complex, model_type, max_seq=max_seq)
-
-                # to allow display of MSA info during colab/chimera run (thanks tomgoddard)
-                if feature_dict_callback is not None:
-                    feature_dict_callback(feature_dict)
-
-            except Exception as e:
-                logger.exception(f"Could not generate input features {jobname}: {e}")
-                continue
-
-            ###############
-            # save plots not requiring prediction
-            ###############
-
-            result_files = []
-
-            # make msa plot
-            msa_plot = plot_msa_v2(feature_dict, dpi=dpi)
-            coverage_png = result_dir.joinpath(f"{jobname}_coverage.png")
-            msa_plot.savefig(str(coverage_png), bbox_inches='tight')
-            msa_plot.close()
-            result_files.append(coverage_png)
-
-            if use_templates:
-                templates_file = result_dir.joinpath(f"{jobname}_template_domain_names.json")
-                templates_file.write_text(json.dumps(domain_names))
-                result_files.append(templates_file)
-
-            result_files.append(result_dir.joinpath(jobname + ".a3m"))
-            result_files += [bibtex_file, config_out_file]
-
-            ######################
-            # predict structures
-            ######################
-            if num_models > 0:
-                try:
-                    # get list of lengths
-                    query_sequence_len_array = sum([[len(x)] * y
-                        for x,y in zip(query_seqs_unique, query_seqs_cardinality)],[])
-
-                    # decide how much to pad (to avoid recompiling)
-                    if seq_len > pad_len:
-                        if isinstance(recompile_padding, float):
-                            pad_len = math.ceil(seq_len * recompile_padding)
+                # prep model and params
+                if first_job:
+                    # if one job input adjust max settings
+                    if len(queries) == 1 and msa_mode != "single_sequence":
+                        # get number of sequences
+                        if "msa_mask" in feature_dict:
+                            num_seqs = int(sum(feature_dict["msa_mask"].max(-1) == 1))
                         else:
-                            pad_len = seq_len + recompile_padding
-                        pad_len = min(pad_len, max_len)
+                            num_seqs = int(len(feature_dict["msa"]))
 
-                    # prep model and params
-                    if first_job:
-                        # if one job input adjust max settings
-                        if len(queries) == 1 and msa_mode != "single_sequence":
-                            # get number of sequences
-                            if "msa_mask" in feature_dict:
-                                num_seqs = int(sum(feature_dict["msa_mask"].max(-1) == 1))
-                            else:
-                                num_seqs = int(len(feature_dict["msa"]))
+                        if use_templates: num_seqs += 4
 
-                            if use_templates: num_seqs += 4
+                        # adjust max settings
+                        max_seq = min(num_seqs, max_seq)
+                        max_extra_seq = max(min(num_seqs - max_seq, max_extra_seq), 1)
+                        logger.info(f"Setting max_seq={max_seq}, max_extra_seq={max_extra_seq}")
 
-                            # adjust max settings
-                            max_seq = min(num_seqs, max_seq)
-                            max_extra_seq = max(min(num_seqs - max_seq, max_extra_seq), 1)
-                            logger.info(f"Setting max_seq={max_seq}, max_extra_seq={max_extra_seq}")
-
-                        model_runner_and_params = load_models_and_params(
-                            num_models=num_models,
-                            use_templates=use_templates,
-                            num_recycles=num_recycles,
-                            num_ensemble=num_ensemble,
-                            model_order=model_order,
-                            model_type=model_type,
-                            data_dir=data_dir,
-                            stop_at_score=stop_at_score,
-                            rank_by=rank_by,
-                            use_dropout=use_dropout,
-                            max_seq=max_seq,
-                            max_extra_seq=max_extra_seq,
-                            use_cluster_profile=use_cluster_profile,
-                            recycle_early_stop_tolerance=recycle_early_stop_tolerance,
-                            use_fuse=use_fuse,
-                            use_bfloat16=use_bfloat16,
-                            save_all=save_all,
-                            calc_extra_ptm=calc_extra_ptm
-                        )
-                        first_job = False
-                    
-                    print(f"jobname: {jobname}")
-
-                    results = predict_structure(
-                        prefix=jobname,
-                        result_dir=result_dir,
-                        feature_dict=feature_dict,
-                        is_complex=is_complex,
+                    model_runner_and_params = load_models_and_params(
+                        num_models=num_models,
                         use_templates=use_templates,
-                        sequences_lengths=query_sequence_len_array,
-                        pad_len=pad_len,
+                        num_recycles=num_recycles,
+                        num_ensemble=num_ensemble,
+                        model_order=model_order,
                         model_type=model_type,
-                        model_runner_and_params=model_runner_and_params,
-                        num_relax=num_relax,
-                        relax_max_iterations=relax_max_iterations,
-                        relax_tolerance=relax_tolerance,
-                        relax_stiffness=relax_stiffness,
-                        relax_max_outer_iterations=relax_max_outer_iterations,
-                        rank_by=rank_by,
+                        data_dir=data_dir,
                         stop_at_score=stop_at_score,
-                        prediction_callback=prediction_callback,
-                        use_gpu_relax=use_gpu_relax,
-                        random_seed=random_seed,
-                        num_seeds=num_seeds,
+                        rank_by=rank_by,
+                        use_dropout=use_dropout,
+                        max_seq=max_seq,
+                        max_extra_seq=max_extra_seq,
+                        use_cluster_profile=use_cluster_profile,
+                        recycle_early_stop_tolerance=recycle_early_stop_tolerance,
+                        use_fuse=use_fuse,
+                        use_bfloat16=use_bfloat16,
                         save_all=save_all,
-                        save_single_representations=save_single_representations,
-                        save_pair_representations=save_pair_representations,
-                        save_recycles=save_recycles,
-                        calc_extra_ptm=calc_extra_ptm,
-                        use_probs_extra=use_probs_extra,
+                        calc_extra_ptm=calc_extra_ptm
                     )
-                    
-                    result_files += results["result_files"]
-                    ranks.append(results["rank"])
-                    metrics.append(results["metric"])
-                    
-                    
+                    first_job = False
 
-                except RuntimeError as e:
-                    # This normally happens on OOM. TODO: Filter for the specific OOM error message
-                    logger.error(f"Could not predict {jobname}. Not Enough GPU memory? {e}")
-                    continue
-
-                ###############
-                # save prediction plots
-                ###############
-
-                # load the scores
-                scores = []
-                for r in results["rank"][:5]:
-                    scores_file = result_dir.joinpath(f"{jobname}_scores_{r}.json")
-                    with scores_file.open("r") as handle:
-                        scores.append(json.load(handle))
-
-                # write alphafold-db format (pAE)
-                if "pae" in scores[0]:
-                    af_pae_file = result_dir.joinpath(f"{jobname}_predicted_aligned_error_v1.json")
-                    af_pae_file.write_text(json.dumps({
-                        "predicted_aligned_error":scores[0]["pae"],
-                        "max_predicted_aligned_error":scores[0]["max_pae"]}))
-                    result_files.append(af_pae_file)
-
-                    # make pAE plots
-                    paes_plot = plot_paes([np.asarray(x["pae"]) for x in scores],
-                        Ls=query_sequence_len_array, dpi=dpi)
-                    pae_png = result_dir.joinpath(f"{jobname}_pae.png")
-                    paes_plot.savefig(str(pae_png), bbox_inches='tight')
-                    paes_plot.close()
-                    result_files.append(pae_png)
-
-                    # make pairwise interface metric plots and chainwise ptm plot
-                    if calc_extra_ptm:
-                        ext_metric_png = result_dir.joinpath(f"{jobname}_ext_metrics.png")
-                        extra_ptm.plot_chain_pairwise_analysis(scores, fig_path=ext_metric_png)
-
-                # make pLDDT plot
-                plddt_plot = plot_plddts([np.asarray(x["plddt"]) for x in scores],
-                    Ls=query_sequence_len_array, dpi=dpi)
-                plddt_png = result_dir.joinpath(f"{jobname}_plddt.png")
-                plddt_plot.savefig(str(plddt_png), bbox_inches='tight')
-                plddt_plot.close()
-                result_files.append(plddt_png)
-
+                results = predict_structure(
+                    prefix=jobname,
+                    result_dir=result_dir,
+                    feature_dict=feature_dict,
+                    is_complex=is_complex,
+                    use_templates=use_templates,
+                    sequences_lengths=query_sequence_len_array,
+                    pad_len=pad_len,
+                    model_type=model_type,
+                    model_runner_and_params=model_runner_and_params,
+                    num_relax=num_relax,
+                    relax_max_iterations=relax_max_iterations,
+                    relax_tolerance=relax_tolerance,
+                    relax_stiffness=relax_stiffness,
+                    relax_max_outer_iterations=relax_max_outer_iterations,
+                    rank_by=rank_by,
+                    stop_at_score=stop_at_score,
+                    prediction_callback=prediction_callback,
+                    use_gpu_relax=use_gpu_relax,
+                    random_seed=random_seed,
+                    num_seeds=num_seeds,
+                    save_all=save_all,
+                    save_single_representations=save_single_representations,
+                    save_pair_representations=save_pair_representations,
+                    save_recycles=save_recycles,
+                    calc_extra_ptm=calc_extra_ptm,
+                    use_probs_extra=use_probs_extra,
+                )
+                
                 result_files += results["result_files"]
                 ranks.append(results["rank"])
                 metrics.append(results["metric"])
-                new_pdb, new_json = get_new_files(result_dir, raw_jobname)
-                plddt_score = float(calculate_mean_plddt(new_json))
-                count += 1
-                tmscore, sol = scoring_TMscoreScaledSol(new_pdb, query_sequence, purposes_pdb, result_dir)
-                write_csv(query, tmscore, sol, plddt_score, output_csv)
-                if first_gen:
-                    solution.append(query_sequence)  
-                else:
-                    solution2.append(query_sequence)             
 
+            except RuntimeError as e:
+                # This normally happens on OOM. TODO: Filter for the specific OOM error message
+                logger.error(f"Could not predict {jobname}. Not Enough GPU memory? {e}")
+                continue
 
-            if zip_results:
-                with zipfile.ZipFile(result_zip, "w") as result_zip:
-                    for file in result_files:
-                        result_zip.write(file, arcname=file.name)
+            ###############
+            # save prediction plots
+            ###############
 
-                # Delete only after the zip was successful, and also not the bibtex and config because we need those again
+            # load the scores
+            scores = []
+            for r in results["rank"][:5]:
+                scores_file = result_dir.joinpath(f"{jobname}_scores_{r}.json")
+                with scores_file.open("r") as handle:
+                    scores.append(json.load(handle))
+
+            # write alphafold-db format (pAE)
+            if "pae" in scores[0]:
+                af_pae_file = result_dir.joinpath(f"{jobname}_predicted_aligned_error_v1.json")
+                af_pae_file.write_text(json.dumps({
+                    "predicted_aligned_error":scores[0]["pae"],
+                    "max_predicted_aligned_error":scores[0]["max_pae"]}))
+                result_files.append(af_pae_file)
+
+                # make pAE plots
+                paes_plot = plot_paes([np.asarray(x["pae"]) for x in scores],
+                    Ls=query_sequence_len_array, dpi=dpi)
+                pae_png = result_dir.joinpath(f"{jobname}_pae.png")
+                paes_plot.savefig(str(pae_png), bbox_inches='tight')
+                paes_plot.close()
+                result_files.append(pae_png)
+
+                # make pairwise interface metric plots and chainwise ptm plot
+                if calc_extra_ptm:
+                    ext_metric_png = result_dir.joinpath(f"{jobname}_ext_metrics.png")
+                    extra_ptm.plot_chain_pairwise_analysis(scores, fig_path=ext_metric_png)
+
+            # make pLDDT plot
+            plddt_plot = plot_plddts([np.asarray(x["plddt"]) for x in scores],
+                Ls=query_sequence_len_array, dpi=dpi)
+            plddt_png = result_dir.joinpath(f"{jobname}_plddt.png")
+            plddt_plot.savefig(str(plddt_png), bbox_inches='tight')
+            plddt_plot.close()
+            result_files.append(plddt_png)
+
+        if zip_results:
+            with zipfile.ZipFile(result_zip, "w") as result_zip:
                 for file in result_files:
-                    if file != bibtex_file and file != config_out_file:
-                        file.unlink()
-            else:
-                if num_models > 0:
-                    is_done_marker.touch()
-        if not first_gen:
-            function1_values2 = get_tm_scores(output_csv, solution2)
-            function2_values2 = get_recovery(output_csv, solution2)
-            non_dominated_sorted_solution2 = fast_non_dominated_sort(function1_values2[:],function2_values2[:])
-            crowding_distance_values2=[]
-            for i in range(0,len(non_dominated_sorted_solution2)):
-                crowding_distance_values2.append(crowding_distance(function1_values2[:],function2_values2[:],non_dominated_sorted_solution2[i][:]))
-            new_solution= []
-            for i in range(0,len(non_dominated_sorted_solution2)):
-                non_dominated_sorted_solution2_1 = [index_of(non_dominated_sorted_solution2[i][j],non_dominated_sorted_solution2[i] ) for j in range(0,len(non_dominated_sorted_solution2[i]))]
-                front22 = sort_by_values(non_dominated_sorted_solution2_1[:], crowding_distance_values2[i][:])
-                front = [non_dominated_sorted_solution2[i][front22[j]] for j in range(0,len(non_dominated_sorted_solution2[i]))]
-                front.reverse()
-                for value in front:
-                    new_solution.append(value)
-                    if(len(new_solution)==pop_size):
-                        break
-                if (len(new_solution) == pop_size):
-                    break
-            solution = [solution2[i] for i in new_solution]
-        if first_gen:
-            first_gen = False
-        gen_no = gen_no + 1
+                    result_zip.write(file, arcname=file.name)
+
+            # Delete only after the zip was successful, and also not the bibtex and config because we need those again
+            for file in result_files:
+                if file != bibtex_file and file != config_out_file:
+                    file.unlink()
+        else:
+            if num_models > 0:
+                is_done_marker.touch()
+
     logger.info("Done")
     return {"rank":ranks,"metric":metrics}
 
@@ -2141,47 +1721,12 @@ def main():
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "input",
-        help="One of FASTA file",
+        default="input",
+        help="One of: 1) directory with FASTA/A3M files, 2) CSV/TSV file, 3) FASTA file or 4) A3M file.",
     )
-
     parser.add_argument("results", help="Results output directory.")
 
-    parser.add_argument(
-        "purpose_pdb",
-        type=str,
-        help = "Purpose PDB file path.",
-        # /gs/bs/tga-cddlab/akiba/simulated-annealing_seq_top7/input/1qys.pdb
-    )
-
-    parser.add_argument(
-        "output_csv",
-        type=str,
-        help="Output CSV file path.",
-        # /gs/bs/tga-cddlab/akiba/simulated-annealing_seq_top7/input/results.csv
-    )
-
-    parser.add_argument(
-        "generation",
-        type=int,
-        help="Number of generations.",
-        # 5000
-    )
-
-    parser.add_argument(
-        "population",
-        type=int,
-        help="Population size.",
-        # 20
-    )
-
-    parser.add_argument(
-        "sequence_length",
-        type=int,
-        help="Length of the sequence to be generated.",
-    )
-
     msa_group = parser.add_argument_group("MSA arguments", "")
-
     msa_group.add_argument(
         "--msa-only",
         action="store_true",
@@ -2432,7 +1977,7 @@ def main():
         "--save-all",
         default=False,
         action="store_true",
-        help="Save alloutputs from model to a pickle file. "
+        help="Save all raw outputs from model to a pickle file. "
         "Useful for downstream use in other models."
     )
     output_group.add_argument(
@@ -2546,6 +2091,7 @@ def main():
     use_probs_extra = False if args.no_use_probs_extra else True
 
     user_agent = f"colabfold/{version}"
+    print(f"queris: {queries}")
     run(
         queries=queries,
         result_dir=args.results,
@@ -2591,12 +2137,6 @@ def main():
         save_recycles=args.save_recycles,
         calc_extra_ptm=args.calc_extra_ptm,
         use_probs_extra=use_probs_extra,
-        purposes_pdb=args.purpose_pdb,
-        output_csv=args.output_csv,
-        generation=args.generation,
-        population=args.population,
-        sequence_length=args.sequence_length
-
     )
 
 if __name__ == "__main__":
