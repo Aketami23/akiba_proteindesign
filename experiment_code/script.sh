@@ -1,7 +1,7 @@
 #!/bin/bash
 #$ -cwd
 #$ -l gpu_1=1
-#$ -l h_rt=10:00:00
+#$ -l h_rt=00:30:00
 
 DATE=$(date +"%Y%m%d")
 
@@ -39,6 +39,8 @@ echo "negative_tm_score,recovery,negative_plddt,raw_jobname,query_sequence" > "$
 # cp -r "$pySOL_DIR" "$OUTPUT_DIR"
 
 DUMMY_INPUT="/gs/bs/tga-cddlab/akiba/simulated-annealing_seq_top7/input/20250219/initial-1qys-20250219.fasta"
+
+source /gs/fs/tga-cddlab/akiba/apps/localcolabfold/conda/etc/profile.d/conda.sh
 
 conda activate /gs/fs/tga-cddlab/akiba/apps/localcolabfold/colabfold-conda
 
