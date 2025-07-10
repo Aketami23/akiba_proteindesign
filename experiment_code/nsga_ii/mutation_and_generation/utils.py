@@ -27,7 +27,7 @@ def mutation_with_mpnn(config_path: str, sequence: str, number: int, pop_count: 
     seq_length = len(sequence)
     random.seed(None)
     # seedを固定したいけど微妙、少し悪くなるかも
-    seed = seq_length
+    seed = random.randint(0, 2**32 - 1)
     random_position = random.randint(1, seq_length)
     design_only_positions = []
     for pos in [random_position - 1, random_position, random_position + 1]:

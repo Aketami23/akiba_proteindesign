@@ -1,10 +1,20 @@
-実験するためのコード 
+## 実験するためのコード 
 
-main.py 
+実装スクリプト
+./experiment_code/main.py
 
-依存関係 
+実験を実行するためのshell
+./experiment_code/script.sh
 
-plotのためのコード 
+## 依存関係 
+
+実験の依存関係
+./experiment_code/requirements.txt
+
+plotのための環境
+まだ
+
+## plotのためのコード 
 
 ![Distribution_map](plot/Distribution_pareto_fronts.png)
 
