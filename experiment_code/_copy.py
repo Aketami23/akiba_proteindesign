@@ -1,13 +1,12 @@
 import torch
 import random
 import numpy as np
-import copy
-from .protein_mpnn_utils import ProteinMPNN
-from .protein_mpnn_utils import _scores, _S_to_seq, tied_featurize
+from protein_mpnn.protein_mpnn_utils import ProteinMPNN
+from protein_mpnn.protein_mpnn_utils import _scores, _S_to_seq, tied_featurize
 from config_utils import load_config
+import copy
 
-def initialize_model(config_path: str, seed: int, device: any = None)-> tuple[any, any]:
-    _config = load_config(config_path)
+def initialize_model(seed=37, device=None):
     
     torch.manual_seed(seed)
     random.seed(seed)
@@ -15,7 +14,7 @@ def initialize_model(config_path: str, seed: int, device: any = None)-> tuple[an
     
     hidden_dim = 128
     num_layers = 3 
-    checkpoint_path = _config["protein_mpnn"]["checkpoint_path"]
+    checkpoint_path = "/Users/ryo/projects/akiba_project/proteinMPNN/test/vanilla_model_weight/v_48_020.pt"
     
     if device is None:
         device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -100,3 +99,96 @@ def run_inference(config_path: str, model:any, init_seq: str, design_only_positi
                 for b_ix in range(BATCH_COPIES):
                     seq = _S_to_seq(S_sample[b_ix], chain_M[b_ix])
     return seq
+
+
+def calculate_sequence_diversity(sequences):
+    """
+    配列の多様性を計算する関数
+    
+    Args:
+        sequences (list): 生成された配列のリスト
+    
+    Returns:
+        dict: 多様性の指標（平均ハミング距離、位置ごとのエントロピーなど）
+    """
+    import numpy as np
+    from collections import Counter
+    import math
+
+    # 配列が少なくとも2つないと多様性を計算できない
+    if len(sequences) < 2:
+        return {"avg_hamming_distance": 0, "position_entropy": [], "mean_entropy": 0}
+    
+    # 平均ハミング距離を計算
+    total_distance = 0
+    pair_count = 0
+    
+    for i in range(len(sequences)):
+        for j in range(i+1, len(sequences)):
+            hamming_dist = sum(s1 != s2 for s1, s2 in zip(sequences[i], sequences[j]))
+            total_distance += hamming_dist
+            pair_count += 1
+    
+    avg_hamming_distance = total_distance / pair_count if pair_count > 0 else 0
+    
+    # 位置ごとのエントロピーを計算
+    seq_length = len(sequences[0])
+    position_entropy = []
+    
+    for pos in range(seq_length):
+        # 各位置でのアミノ酸の頻度を数える
+        position_aas = [seq[pos] for seq in sequences]
+        aa_counts = Counter(position_aas)
+        
+        # エントロピーを計算
+        entropy = 0
+        for aa, count in aa_counts.items():
+            prob = count / len(sequences)
+            entropy -= prob * math.log2(prob)
+        
+        position_entropy.append(entropy)
+    
+    mean_entropy = sum(position_entropy) / len(position_entropy)
+    
+    return {
+        "avg_hamming_distance": avg_hamming_distance,
+        "position_entropy": position_entropy,
+        "mean_entropy": mean_entropy
+    }
+
+
+def main(jsonl_path, chain_id_jsonl, fixed_positions_jsonl, out_folder, num_seq_per_target, sampling_temp, seed, batch_size):
+    model, device = initialize_model(seed)
+    run_inference(model, jsonl_path, chain_id_jsonl, fixed_positions_jsonl, out_folder, 
+                 num_seq_per_target, sampling_temp, seed, batch_size, device)
+
+import random
+import csv
+
+if __name__ == "__main__":
+    num_seq_per_target = 1
+    sampling_temp = 0.3
+    random.seed(None)
+    seed = random.randint(0, 2**32 - 1)
+    batch_size = 1
+    init_seq = "GKWALFVFEFEDEVIVNNLVFHFPLCYHMPLVLELLRHHVREHPVASFSVKAKIGPRAQQEAILLRLKSMWLGYKRNTVTFMDPTVTLISVR"
+    model, device = initialize_model(seed)
+    config_path = "./experiment_code/config.yaml"
+    for i in range(100):
+        random.seed(None)
+        seq_length = len(init_seq)
+        random_position = random.randint(1, seq_length)
+        design_only_positions = []
+        for pos in [random_position - 1, random_position, random_position + 1]:
+            if 1 <= pos <= seq_length:
+                design_only_positions.append(pos)
+        print(f"Design only position: {design_only_positions}") 
+
+        seq = run_inference(config_path, model, init_seq, design_only_positions, num_seq_per_target, sampling_temp, seed, batch_size, device)
+        init_seq = seq
+        print(f"seq: {seq}")
+    
+    # recovery_rate = seq/_config["known_sequence"]["sequence"]
+    _config = load_config(config_path)
+    recovery_rate = sum(s1 == s2 for s1, s2 in zip(seq, _config["known_sequence"]["sequence"])) / len(init_seq) if len(init_seq) > 0 else 0
+    print(f"Recovery rate: {recovery_rate:.2f}")

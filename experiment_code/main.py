@@ -90,6 +90,7 @@ import jax.numpy as jnp
 logging.getLogger('jax._src.xla_bridge').addFilter(lambda _: False) # jax >=0.4.6
 logging.getLogger('jax._src.lib.xla_bridge').addFilter(lambda _: False) # jax < 0.4.5
 
+
 def mk_mock_template(
     query_sequence: Union[List[str], str], num_temp: int = 1
 ) -> Dict[str, Any]:
@@ -126,6 +127,7 @@ def mk_mock_template(
     }
     return template_features
 
+
 def mk_template(
     a3m_lines: str, template_path: str, query_sequence: str
 ) -> Dict[str, Any]:
@@ -149,6 +151,7 @@ def mk_template(
     )
     return dict(templates_result.features)
 
+
 def validate_and_fix_mmcif(cif_file: Path):
     """validate presence of _entity_poly_seq in cif file and add revision_date if missing"""
     # check that required poly_seq and revision_date fields are present
@@ -171,6 +174,7 @@ def validate_and_fix_mmcif(cif_file: Path):
         with open(cif_file, "a") as f:
             f.write(CIF_REVISION_DATE)
 
+
 modified_mapping = {
   "MSE" : "MET", "MLY" : "LYS", "FME" : "MET", "HYP" : "PRO",
   "TPO" : "THR", "CSO" : "CYS", "SEP" : "SER", "M3L" : "LYS",
@@ -188,6 +192,7 @@ modified_mapping = {
   "CSD" : "CYS", "SEC" : "CYS"
 }
 
+
 class ReplaceOrRemoveHetatmSelect(Select):
   def accept_residue(self, residue):
     hetfield, _, _ = residue.get_id()
@@ -203,6 +208,7 @@ class ReplaceOrRemoveHetatmSelect(Select):
       return 0
     else:
       return 1
+
 
 def convert_pdb_to_mmcif(pdb_file: Path):
     """convert existing pdb files into mmcif with the required poly_seq and revision_date"""
@@ -279,6 +285,7 @@ def mk_hhsearch_db(template_dir: str):
                 cs219.write("\n\0")
                 n += 1
 
+
 def pad_input(
     input_features: model.features.FeatureDict,
     model_runner: model.RunModel,
@@ -313,6 +320,7 @@ def pad_input(
     )  # template_mask (4, 4) second value
     return input_fix
 
+
 class file_manager:
     def __init__(self, prefix: str, result_dir: Path):
         self.prefix = prefix
@@ -329,6 +337,7 @@ class file_manager:
 
     def set_tag(self, tag):
         self.tag = tag
+
 
 def predict_structure(
     prefix: str,
@@ -562,6 +571,7 @@ def predict_structure(
             "metric":metric,
             "result_files":result_files}
 
+
 def parse_fasta(fasta_string: str) -> Tuple[List[str], List[str]]:
     """Parses FASTA string and returns list of strings with amino-acid sequences.
 
@@ -591,6 +601,7 @@ def parse_fasta(fasta_string: str) -> Tuple[List[str], List[str]]:
         sequences[index] += line
 
     return sequences, descriptions
+
 
 def get_queries(
     input_path: Union[str, Path], sort_queries_by: str = "length"
@@ -695,6 +706,7 @@ def get_queries(
                     break
     return queries, is_complex
 
+
 def pair_sequences(
     a3m_lines: List[str], query_sequences: List[str], query_cardinality: List[int]
 ) -> str:
@@ -709,6 +721,7 @@ def pair_sequences(
             else:
                 a3m_line_paired[i] = a3m_line_paired[i] + line * query_cardinality[n]
     return "\n".join(a3m_line_paired)
+
 
 def pad_sequences(
     a3m_lines: List[str], query_sequences: List[str], query_cardinality: List[int]
@@ -734,6 +747,7 @@ def pad_sequences(
                     )
             pos += 1
     return "\n".join(a3m_lines_combined)
+
 
 def get_msa_and_templates(
     jobname: str,
@@ -885,6 +899,7 @@ def get_msa_and_templates(
         template_features,
     )
 
+
 def build_monomer_feature(
     sequence: str, unpaired_msa: str, template_features: Dict[str, Any]
 ):
@@ -898,12 +913,14 @@ def build_monomer_feature(
         **template_features,
     }
 
+
 def build_multimer_feature(paired_msa: str) -> Dict[str, ndarray]:
     parsed_paired_msa = pipeline.parsers.parse_a3m(paired_msa)
     return {
         f"{k}_all_seq": v
         for k, v in pipeline.make_msa_features([parsed_paired_msa]).items()
     }
+
 
 def process_multimer_features(
     features_for_chain: Dict[str, Dict[str, ndarray]],
@@ -962,6 +979,7 @@ def process_multimer_features(
     np_example = pipeline_multimer.pad_msa(np_example, min_num_seq=min_num_seq)
     return np_example
 
+
 def pair_msa(
     query_seqs_unique: List[str],
     query_seqs_cardinality: List[int],
@@ -985,6 +1003,7 @@ def pair_msa(
     else:
         raise ValueError(f"Invalid pairing")
     return a3m_lines
+
 
 def generate_input_feature(
     query_seqs_unique: List[str],
@@ -1076,6 +1095,7 @@ def generate_input_feature(
                 ]
             }
     return (input_feature, domain_names)
+
 
 def unserialize_msa(
     a3m_lines: List[str], query_sequence: Union[List[str], str]
@@ -1182,6 +1202,7 @@ def unserialize_msa(
         template_features,
     )
 
+
 def msa_to_str(
     unpaired_msa: List[str],
     paired_msa: List[str],
@@ -1194,6 +1215,7 @@ def msa_to_str(
     query_seqs_cardinality = [1 for _ in query_seqs_cardinality]
     msa += pair_msa(query_seqs_unique, query_seqs_cardinality, paired_msa, unpaired_msa)
     return msa
+
 
 def put_mmciffiles_into_resultdir(
     pdb_hit_file: Path,
@@ -1246,13 +1268,13 @@ def put_mmciffiles_into_resultdir(
 
 ### ここから下は私が追加した関数
 from evaluation_functions.plddt.utils import calculate_plddt
-from evaluation_functions.solubility.utils import calculate_sol
 from evaluation_functions.tmscore.utils import calculate_tmscore
 from evaluation_functions.recovery.utils import calculate_recovery
 from nsga_ii.utils import index_of, sort_by_values, fast_non_dominated_sort, crowding_distance
 from nsga_ii.mutation_and_generation.utils import generate_offspring_npmm, generate_random_sequence_list
 from input_output.utils import write_csv, get_column_values
-    
+
+
 def get_new_result_files(output_dir: str, name: str) -> Tuple[Optional[str], Optional[str]]:
     # ハードコーディング
     search_pdb = f"{output_dir}/{name}_unrelaxed_rank_001*"
@@ -1262,9 +1284,11 @@ def get_new_result_files(output_dir: str, name: str) -> Tuple[Optional[str], Opt
     if matching_pdb:
         return matching_pdb[0],matching_json[0]
     else:
+        logger.warning(f"No matching files found for {search_pdb} or {search_json}")
         return None
 
 ### この上までが私が追加した関数
+
 
 def run(
     queries: List[Tuple[str, Union[str, List[str]], Optional[List[str]]]],
@@ -1799,6 +1823,7 @@ def run(
     logger.info("Done")
     return {"rank":ranks,"metric":metrics}
 
+
 def set_model_type(is_complex: bool, model_type: str) -> str:
     # backward-compatibility with old options
     old_names = {
@@ -1816,6 +1841,7 @@ def set_model_type(is_complex: bool, model_type: str) -> str:
         else:
             model_type = "alphafold2_ptm"
     return model_type
+
 
 def main():
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)

@@ -26,7 +26,6 @@ def mutation_with_mpnn(config_path: str, sequence: str, number: int, pop_count: 
     batch_size = 1
     seq_length = len(sequence)
     random.seed(None)
-    # seedを固定したいけど微妙、少し悪くなるかも
     seed = random.randint(0, 2**32 - 1)
     random_position = random.randint(1, seq_length)
     design_only_positions = []
@@ -34,7 +33,7 @@ def mutation_with_mpnn(config_path: str, sequence: str, number: int, pop_count: 
         if 1 <= pos <= seq_length:
             design_only_positions.append(pos)
 
-    mutated_sequence = run_inference(model, sequence, design_only_positions, num_seq_per_target, sampling_temp, seed, batch_size, device)
+    mutated_sequence = run_inference(config_path, model, sequence, design_only_positions, num_seq_per_target, sampling_temp, seed, batch_size, device)
     result = (new_header, mutated_sequence, None)
     return result
 
@@ -49,7 +48,8 @@ def generate_offspring(solution: any, count: int)-> list[tuple[str, str, None]]:
 def generate_offspring_npmm(solution: any, count: int, config_path: str) -> list[tuple[str, str, None]]:
     new_queries = []
     pop_count = 1
-    seed = random.randint(1, 92)
+    random.seed(None)
+    seed = random.randint(0, 2**32 - 1)
     model, device = initialize_model(config_path, seed)
     for i in solution:
         new_queries.append(mutation_with_mpnn(config_path, i, count, pop_count, model, device))
@@ -60,7 +60,7 @@ def generate_random_sequence_list(seq_length: int, num_sequences: int) -> list[t
     amino_acids = "ACDEFGHIKLMNPQRSTVWY"
     result = []
     for i in range(1, num_sequences + 1):
-        ## ハードコーディングかも
+        ## ハードコーディング
         seq_id = f"1QYS-Chain_A-TOP7-round_{i}"
         sequence = ''.join(random.choices(amino_acids, k=seq_length))
         result.append((seq_id, sequence, None))
