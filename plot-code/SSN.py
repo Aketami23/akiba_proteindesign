@@ -64,12 +64,12 @@ with open(output_fasta, "w") as fasta, open(groupname_path, "w") as groupfile:
             selected = df[seq_col][:MAX_PER_FILE]
         else:
             df = df.drop_duplicates(subset=seq_col, keep='first')
-            tm_col = columns_lower['tm_score']
-            wt_col = columns_lower['wild_type_recovery']
-            plddt_col = columns_lower['plddt']
+            tm_col = columns_lower['negative_tm_score']
+            wt_col = columns_lower['recovery']
+            plddt_col = columns_lower['negative_plddt']
 
             df = df[df[tm_col] <= -0.9]
-            df = df[df[plddt_col] >= 90]
+            df = df[df[plddt_col] <= -90]
             if df.empty:
                 continue
 

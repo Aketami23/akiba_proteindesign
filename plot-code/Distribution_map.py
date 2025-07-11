@@ -69,8 +69,9 @@ plt.figure(figsize=(9, 6))
 for col, path in zip(colors, csv_files):
     df = pd.read_csv(path)
     columns_lower = {c.lower(): c for c in df.columns}
-    tm_col = columns_lower['tm_score']
-    wt_col = columns_lower['wild_type_recovery']
+    # negative_tm_score,recovery,negative_plddt,raw_jobname,query_sequence
+    tm_col = columns_lower['negative_tm_score']
+    wt_col = columns_lower['recovery']
     plddt_col = columns_lower.get('plddt', None)
     seq_col = columns_lower.get('query_sequence', None)
 
@@ -92,11 +93,11 @@ for col, path in zip(colors, csv_files):
              marker='o', markersize=4, linewidth=1.5,
              alpha=0.9, color=col, label=os.path.basename(path))
 
-plt.xlabel('f_structure')
-plt.ylabel('f_recovery')
-plt.title('Pareto Fronts')
+plt.xlabel(r'$\mathrm{f}_{\text{structure}}$', fontsize=20)
+plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$', fontsize=20)
+plt.title('Pareto Fronts', fontsize=14)
 plt.legend(title='CSV Files', fontsize='x-small', markerscale=0.8,
-           bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.0)
+           bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.0, title_fontsize=23)
 
 plt.tight_layout()
 plt.savefig("./plot/Distribution_pareto_fronts.png", format="png", dpi=300)

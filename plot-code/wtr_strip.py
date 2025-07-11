@@ -26,16 +26,16 @@ ours_min_wtr = []
 for col, path in zip(colors, csv_files):
     df = pd.read_csv(path)
     columns_lower = {c.lower(): c for c in df.columns}
-    tm_col = columns_lower['tm_score']
-    wt_col = columns_lower['wild_type_recovery']
-    plddt_col = columns_lower.get('plddt', None)
+    tm_col = columns_lower['negative_tm_score']
+    wt_col = columns_lower['recovery']
+    plddt_col = columns_lower.get('negative_plddt', None)
     seq_col = columns_lower.get('query_sequence', None)
 
     if seq_col:
         df = df.drop_duplicates(subset=seq_col, keep='first')
 
     df = df[df[tm_col] <= -0.9] if tm_col else df
-    df = df[df[plddt_col] >= 90] if plddt_col else df
+    df = df[df[plddt_col] <= -90] if plddt_col else df
 
     min_val = df[wt_col].min() if wt_col in df.columns else None
     if min_val is not None:
@@ -45,8 +45,8 @@ pmpnn_files = sorted(glob.glob('./pMPNNdata/*.csv'))
 pmpnn_wtr = []
 for path in pmpnn_files:
     df = pd.read_csv(path)
-    if 'wild_type_recovery' in df.columns and not df.empty:
-        pmpnn_wtr.extend(df['wild_type_recovery'].tolist())
+    if 'recovery' in df.columns and not df.empty:
+        pmpnn_wtr.extend(df['recovery'].tolist())
 
 plt.figure(figsize=(7, 5))
 

@@ -38,7 +38,6 @@ def fast_non_dominated_sort(values1, values2):
             rank[p] = 0
             if p not in front[0]:
                 front[0].append(p)
-
     i = 0
     while(front[i] != []):
         Q=[]
@@ -64,16 +63,16 @@ colors = colormaps['tab20'].colors[:len(csv_files)]
 for col, path in zip(colors, csv_files):
     df = pd.read_csv(path)
     columns_lower = {c.lower(): c for c in df.columns}
-    tm_col = columns_lower['tm_score']
-    wt_col = columns_lower['wild_type_recovery']
-    plddt_col = columns_lower.get('plddt', None)
+    tm_col = columns_lower['negative_tm_score']
+    wt_col = columns_lower['recovery']
+    plddt_col = columns_lower.get('negative_plddt', None)
     seq_col = columns_lower.get('query_sequence', None)
 
     if seq_col:
         df = df.drop_duplicates(subset=seq_col, keep='first')
 
     df = df[df[tm_col] <= 0] if tm_col else df
-    df = df[df[plddt_col] >= 0] if plddt_col else df
+    df = df[df[plddt_col] <= 0] if plddt_col else df
     values1 = df[tm_col].values
     values2 = df[wt_col].values
     fronts = fast_non_dominated_sort(values1, values2)

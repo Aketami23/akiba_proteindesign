@@ -22,7 +22,7 @@ plt.figure(figsize=(10, 6))
 for col, path in zip(colors, csv_files):
     df = pd.read_csv(path)
     columns_lower = {c.lower(): c for c in df.columns}
-    tm_col = columns_lower['tm_score']
+    tm_col = columns_lower['negative_tm_score']
     tmscores = df[tm_col].values
 
     min_so_far = np.inf
@@ -42,12 +42,12 @@ for col, path in zip(colors, csv_files):
                  linewidth=1.5, color=col, alpha=0.9,
                  label=os.path.basename(path))
 
-plt.xlabel('time series')
-plt.ylabel('f_structure')
+plt.xlabel('time series', fontsize=20)
+plt.ylabel(r'$\mathrm{f}_{\text{structure}}$', fontsize=20)
 plt.ylim(0, -1)
-plt.title('f_structure Best-so-far (Every 5 Generations)')
+plt.title(r'$\mathrm{f}_{\text{structure}}$ Best-so-far (Every 5 Generations)')
 plt.legend(fontsize='x-small', markerscale=0.8,
-           bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.0)
+           bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.0, title_fontsize=12)
 
 plt.tight_layout()
 plt.savefig("./plot/f_structure_every5gen.png", format="png", dpi=300)

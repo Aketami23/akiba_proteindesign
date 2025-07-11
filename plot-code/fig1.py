@@ -15,8 +15,8 @@ ours_min_wtr = []
 for path in csv_files:
     df = pd.read_csv(path)
     columns_lower = {c.lower(): c for c in df.columns}
-    tm_col = columns_lower['tm_score']
-    wt_col = columns_lower['wild_type_recovery']
+    tm_col = columns_lower['negative_tm_score']
+    wt_col = columns_lower['recovery']
     plddt_col = columns_lower.get('plddt', None)
     seq_col = columns_lower.get('query_sequence', None)
 
@@ -34,8 +34,8 @@ pmpnn_files = sorted(glob.glob('./pMPNNdata/*.csv'))
 pmpnn_wtr = []
 for path in pmpnn_files:
     df = pd.read_csv(path)
-    if 'wild_type_recovery' in df.columns and not df.empty:
-        pmpnn_wtr.extend(df['wild_type_recovery'].tolist())
+    if 'recovery' in df.columns and not df.empty:
+        pmpnn_wtr.extend(df['recovery'].tolist())
 
 df_ours = pd.DataFrame({"Method": "Ours", "Recovery score": ours_min_wtr})
 df_pmpnn = pd.DataFrame({"Method": "ProteinMPNN", "Recovery score": pmpnn_wtr})

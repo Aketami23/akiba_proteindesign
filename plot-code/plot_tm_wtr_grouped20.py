@@ -24,8 +24,8 @@ for csv_path in csv_files:
     df = pd.read_csv(csv_path)
 
     columns_lower = {c.lower(): c for c in df.columns}
-    tm_col = columns_lower['tm_score']
-    wt_col = columns_lower['wild_type_recovery']
+    tm_col = columns_lower['negative_tm_score']
+    wt_col = columns_lower['recovery']
     qseq_col = columns_lower.get('query_sequence')
 
     max_generation = 500
@@ -57,18 +57,18 @@ for csv_path in csv_files:
     plt.figure(figsize=(8, 6))
     sc = plt.scatter(tm_list, wt_list, c=group_ids,
                     cmap=discrete_cmap, norm=norm,
-                    s=20, edgecolor='k', linewidth=0.3)
+                    s=20, edgecolor='k', linewidth=0.3, font_size=10)
 
-    cbar = plt.colorbar(sc, label='Generation Number')
+    cbar = plt.colorbar(sc, label='Generation Number',)
     tick_positions = np.concatenate([[1], np.arange(50, max_generation + 1, 50)])
     cbar.set_ticks(tick_positions)
 
     plt.xlim(-1.0, 0.0)
-    plt.ylim(0.0, 0.4)
+    plt.ylim(0.0, 0.2)
 
-    plt.xlabel('f_structure')
-    plt.ylabel('f_recovery')
-    plt.title('Scatter Plot Colored by Generation Number')
+    plt.xlabel(r'$\mathrm{f}_{\text{structure}}$', fontsize=20)
+    plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$', fontsize=20)
+    plt.title('Scatter Plot Colored by Generation Number', fontsize=20)
     plt.tight_layout()
     #plt.show()
     plt.savefig(f'plot/colored_scatter/tm_wtr_generation_scatter_{name}.png', dpi=300, format='png')

@@ -1,4 +1,3 @@
-
 import glob
 import os
 import numpy as np
@@ -30,6 +29,7 @@ def fast_non_dominated_sort(values1, values2):
     rank = [0 for i in range(0, len(values1))]
 
     for p in range(0,len(values1)):
+        print(f"Processing point {p+1}/{len(values1)}")
         S[p]=[]
         n[p]=0
         for q in range(0, len(values1)):
@@ -46,7 +46,6 @@ def fast_non_dominated_sort(values1, values2):
             rank[p] = 0
             if p not in front[0]:
                 front[0].append(p)
-
     i = 0
     while(front[i] != []):
         Q=[]
@@ -68,16 +67,16 @@ plt.figure(figsize=(9, 6))
 for col, path in zip(colors, csv_files):
     df = pd.read_csv(path)
     columns_lower = {c.lower(): c for c in df.columns}
-    tm_col = columns_lower['tm_score']
-    wt_col = columns_lower['wild_type_recovery']
-    plddt_col = columns_lower.get('plddt', None)
+    tm_col = columns_lower['negative_tm_score']
+    wt_col = columns_lower['recovery']
+    plddt_col = columns_lower.get('negative_plddt', None)
     seq_col = columns_lower.get('query_sequence', None)
 
     if seq_col:
         df = df.drop_duplicates(subset=seq_col, keep='first')
 
     df = df[df[tm_col] <= -0.9] if tm_col else df
-    df = df[df[plddt_col] >= 90] if plddt_col else df
+    df = df[df[plddt_col] <= -90] if plddt_col else df
     values1 = df[tm_col].values
     values2 = df[wt_col].values
     fronts = fast_non_dominated_sort(values1, values2)
@@ -88,7 +87,7 @@ for col, path in zip(colors, csv_files):
     pareto = df.iloc[selected_idx][[tm_col, wt_col]].values
     pareto_sorted = pareto[np.argsort(pareto[:, 0])]
     plt.plot(pareto_sorted[:, 0], pareto_sorted[:, 1],
-             marker='o', markersize=4, linewidth=1.5,
+             marker='.', markersize=4, linewidth=1.5,
              alpha=0.9, color=col, label=os.path.basename(path))
 
 plt.xlabel('f_structure')
@@ -97,6 +96,7 @@ plt.title('Pareto Fronts')
 plt.legend(title='CSV Files', fontsize='x-small', markerscale=0.8,
            bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.0)
 
+# 外枠を消してカラーマップを見やすくする
 plt.tight_layout()
 plt.savefig("plot/filtered_pareto_fronts.png", format="png", dpi=300)
 # plt.show()
