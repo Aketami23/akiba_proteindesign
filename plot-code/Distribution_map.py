@@ -93,8 +93,8 @@ for col, path in zip(colors, csv_files):
              marker='o', markersize=4, linewidth=1.5,
              alpha=0.9, color=col, label=os.path.basename(path))
 
-plt.xlabel(r'$\mathrm{f}_{\text{structure}}$', fontsize=20)
-plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$', fontsize=20)
+plt.xlabel("r_structure", fontsize=20)
+plt.ylabel("f_recovery", fontsize=20)
 plt.title('Pareto Fronts', fontsize=14)
 plt.legend(title='CSV Files', fontsize='x-small', markerscale=0.8,
            bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.0, title_fontsize=23)

@@ -49,15 +49,15 @@ for csv_path in csv_files:
         wt_list.append(row[wt_col])
         group_ids.append(gen_id)
 
-    cmap = colormaps['turbo']
+    cmap = colormaps['plasma']
     fixed_colors = cmap(np.linspace(0, 1, max_generation+1))
     discrete_cmap = colors.ListedColormap(fixed_colors[1:])
     norm = colors.BoundaryNorm(np.arange(0.5, max_generation + 1.5, 1), max_generation)
 
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(10, 6))
     sc = plt.scatter(tm_list, wt_list, c=group_ids,
                     cmap=discrete_cmap, norm=norm,
-                    s=20, edgecolor='k', linewidth=0.3, font_size=10)
+                    s=20, edgecolors='none')
 
     cbar = plt.colorbar(sc, label='Generation Number',)
     tick_positions = np.concatenate([[1], np.arange(50, max_generation + 1, 50)])
@@ -66,10 +66,10 @@ for csv_path in csv_files:
     plt.xlim(-1.0, 0.0)
     plt.ylim(0.0, 0.2)
 
-    plt.xlabel(r'$\mathrm{f}_{\text{structure}}$', fontsize=20)
-    plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$', fontsize=20)
+    plt.xlabel('f_structure', fontsize=20)
+    plt.ylabel('f_recovery', fontsize=20)
     plt.title('Scatter Plot Colored by Generation Number', fontsize=20)
     plt.tight_layout()
-    #plt.show()
+    # plt.show()
     plt.savefig(f'plot/colored_scatter/tm_wtr_generation_scatter_{name}.png', dpi=300, format='png')
 
