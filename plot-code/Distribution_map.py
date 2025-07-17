@@ -5,12 +5,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
+from natsort import natsorted
 
-try:
-    import scienceplots
-    plt.style.use(['science', 'no-latex'])
-except ImportError:
-    pass
+import scienceplots # noqa: F401
+plt.style.use(['science', 'nature'])
 
 def fast_non_dominated_sort(values1, values2):
     S=[[] for i in range(0,len(values1))]
@@ -53,7 +51,7 @@ def fast_non_dominated_sort(values1, values2):
     del front[len(front)-1]
     return front
 
-csv_files = sorted(glob.glob('./data/*.csv'))
+csv_files = natsorted(glob.glob('./data/*.csv'))
 if not csv_files:
     raise RuntimeError("No CSV files found")
 
@@ -64,6 +62,8 @@ colors = np.vstack([
     cmap2(np.linspace(0, 1, 20))
 ])[:len(csv_files)]
 
+plt.rcParams["font.size"] = 20
+
 plt.figure(figsize=(9, 6))
 
 for col, path in zip(colors, csv_files):
@@ -72,14 +72,14 @@ for col, path in zip(colors, csv_files):
     # negative_tm_score,recovery,negative_plddt,raw_jobname,query_sequence
     tm_col = columns_lower['negative_tm_score']
     wt_col = columns_lower['recovery']
-    plddt_col = columns_lower.get('plddt', None)
+    plddt_col = columns_lower.get('negative_plddt', None)
     seq_col = columns_lower.get('query_sequence', None)
 
     if seq_col:
         df = df.drop_duplicates(subset=seq_col, keep='first')
 
     df = df[df[tm_col] <= 0] if tm_col else df
-    df = df[df[plddt_col] >= 0] if plddt_col else df
+    df = df[df[plddt_col] <= 0] if plddt_col else df
     values1 = df[tm_col].values
     values2 = df[wt_col].values
     fronts = fast_non_dominated_sort(values1, values2)
@@ -93,12 +93,18 @@ for col, path in zip(colors, csv_files):
              marker='o', markersize=4, linewidth=1.5,
              alpha=0.9, color=col, label=os.path.basename(path))
 
-plt.xlabel("r_structure", fontsize=20)
-plt.ylabel("f_recovery", fontsize=20)
-plt.title('Pareto Fronts', fontsize=14)
-plt.legend(title='CSV Files', fontsize='x-small', markerscale=0.8,
-           bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.0, title_fontsize=23)
+plt.xlabel(r'$\mathrm{f}_{\text{structure}}$')
+plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$')
+plt.tick_params(labelsize=15)
+
+"""
+plt.legend(bbox_to_anchor=(1, 1), 
+           loc='upper right',
+           fontsize=15, 
+           borderaxespad=1)
+"""
 
 plt.tight_layout()
 plt.savefig("./plot/Distribution_pareto_fronts.png", format="png", dpi=300)
 # plt.show()
+plt.close()

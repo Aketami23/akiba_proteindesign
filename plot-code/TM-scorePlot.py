@@ -4,8 +4,12 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
+from natsort import natsorted
 
-csv_files = sorted(glob.glob('./data/*.csv'))
+import scienceplots # noqa: F401
+plt.style.use(['science', 'nature'])
+
+csv_files = natsorted(glob.glob('./data/*.csv'))
 if not csv_files:
     raise RuntimeError("No CSV files found")
 
@@ -42,13 +46,14 @@ for col, path in zip(colors, csv_files):
                  linewidth=1.5, color=col, alpha=0.9,
                  label=os.path.basename(path))
 
-plt.xlabel('time series', fontsize=20)
-plt.ylabel(r'$\mathrm{f}_{\text{structure}}$', fontsize=20)
+plt.xlabel('', fontsize=20)
+plt.ylabel(r'$\mathrm{f}_{\text{structure}}$')
+plt.tick_params(labelsize=15)
 plt.ylim(0, -1)
-plt.title(r'$\mathrm{f}_{\text{structure}}$ Best-so-far (Every 5 Generations)')
 plt.legend(fontsize='x-small', markerscale=0.8,
            bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.0, title_fontsize=12)
 
 plt.tight_layout()
 plt.savefig("./plot/f_structure_every5gen.png", format="png", dpi=300)
 # plt.show()
+plt.close()

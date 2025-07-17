@@ -6,11 +6,8 @@ from natsort import natsorted
 import glob
 from pathlib import Path
 
-try:
-    import scienceplots
-    plt.style.use(['science', 'nature'])
-except ImportError:
-    pass
+import scienceplots # noqa: F401
+plt.style.use(['science', 'nature'])
 
 csv_files = natsorted(glob.glob('./data/*.csv'))
 if not csv_files:
@@ -54,6 +51,8 @@ for csv_path in csv_files:
     discrete_cmap = colors.ListedColormap(fixed_colors[1:])
     norm = colors.BoundaryNorm(np.arange(0.5, max_generation + 1.5, 1), max_generation)
 
+    plt.rcParams["font.size"] = 20
+
     plt.figure(figsize=(10, 6))
     sc = plt.scatter(tm_list, wt_list, c=group_ids,
                     cmap=discrete_cmap, norm=norm,
@@ -66,10 +65,11 @@ for csv_path in csv_files:
     plt.xlim(-1.0, 0.0)
     plt.ylim(0.0, 0.2)
 
-    plt.xlabel('f_structure', fontsize=20)
-    plt.ylabel('f_recovery', fontsize=20)
-    plt.title('Scatter Plot Colored by Generation Number', fontsize=20)
+    plt.xlabel(r'$\mathrm{f}_{\text{structure}}$')
+    plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$')
+    plt.tick_params(labelsize=15)
     plt.tight_layout()
     # plt.show()
     plt.savefig(f'plot/colored_scatter/tm_wtr_generation_scatter_{name}.png', dpi=300, format='png')
+    plt.close()
 

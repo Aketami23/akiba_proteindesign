@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-import scienceplots
+import scienceplots # noqa: F401
 plt.style.use(['science', 'nature'])
 
 csv_files = sorted(glob.glob('./data/*.csv'))

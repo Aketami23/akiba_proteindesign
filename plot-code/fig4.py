@@ -7,11 +7,8 @@ import matplotlib.pyplot as plt
 from matplotlib import colormaps
 from natsort import natsorted
 
-try:
-    import scienceplots
-    plt.style.use(['science', 'nature'])
-except ImportError:
-    pass
+import scienceplots # noqa: F401
+plt.style.use(['science', 'nature'])
 
 def fast_non_dominated_sort(values1, values2):
     S=[[] for i in range(0,len(values1))]

@@ -133,7 +133,7 @@ if __name__ == "__main__":
                 lines = f.readlines()
             if len(lines) != len(colors):
                 raise ValueError("Number of groupings does not match number of embedded sequences.")
-            colors = [l.strip("\n") for l in lines]
+            colors = [_i.strip("\n") for _i in lines]
             try:
                 colors = [int(c) for c in colors]
             except Exception:

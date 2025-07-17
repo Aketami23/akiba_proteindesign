@@ -1,8 +1,9 @@
 import os
-import numpy as np
 import pandas as pd
-from matplotlib import colormaps
 import glob
+import subprocess
+from natsort import natsorted
+
 
 def fast_non_dominated_sort(values1, values2):
     S=[[] for i in range(0,len(values1))]
@@ -44,7 +45,7 @@ def fast_non_dominated_sort(values1, values2):
     del front[len(front)-1]
     return front
 
-csv_files = sorted(glob.glob('./data/*.csv'))
+csv_files = natsorted(glob.glob('./data/*.csv'))
 csv_files.append('./pMPNNdata/proteinMPNN03.csv')
 file_basenames = [os.path.splitext(os.path.basename(p))[0] for p in csv_files]
 MAX_PER_FILE = 100
@@ -94,8 +95,6 @@ with open(output_fasta, "w") as fasta, open(groupname_path, "w") as groupfile:
             groupfile.write(f"{basename}\n")
 
 print(f"FASTA and groupnames list written to {output_fasta} and {groupname_path}")
-
-import subprocess
 
 cmd = [
     "python",

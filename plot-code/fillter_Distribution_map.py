@@ -4,14 +4,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
+from natsort import natsorted
+import scienceplots # noqa: F401
+plt.style.use(['science', 'nature'])
 
-try:
-    import scienceplots
-    plt.style.use(['science', 'no-latex'])
-except ImportError:
-    pass
-
-csv_files = sorted(glob.glob('./data/*.csv'))
+csv_files = natsorted(glob.glob('./data/*.csv'))
 if not csv_files:
     raise RuntimeError("No CSV files found")
 
@@ -62,6 +59,8 @@ def fast_non_dominated_sort(values1, values2):
     del front[len(front)-1]
     return front
 
+plt.rcParams["font.size"] = 20
+
 plt.figure(figsize=(9, 6))
 
 for col, path in zip(colors, csv_files):
@@ -75,7 +74,7 @@ for col, path in zip(colors, csv_files):
     if seq_col:
         df = df.drop_duplicates(subset=seq_col, keep='first')
 
-    df = df[df[tm_col] <= -0.9] if tm_col else df
+    df = df[df[tm_col] <= -0.90] if tm_col else df
     df = df[df[plddt_col] <= -90] if plddt_col else df
     values1 = df[tm_col].values
     values2 = df[wt_col].values
@@ -90,13 +89,17 @@ for col, path in zip(colors, csv_files):
              marker='.', markersize=4, linewidth=1.5,
              alpha=0.9, color=col, label=os.path.basename(path))
 
-plt.xlabel('f_structure')
-plt.ylabel('f_recovery')
-plt.title('Pareto Fronts')
-plt.legend(title='CSV Files', fontsize='x-small', markerscale=0.8,
-           bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.0)
+plt.xlabel(r'$\mathrm{f}_{\text{structure}}$')
+plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$')
+plt.tick_params(labelsize=15)
 
-# 外枠を消してカラーマップを見やすくする
+"""
+plt.legend(bbox_to_anchor=(1, 1), 
+           loc='upper right',
+           fontsize=15, 
+           borderaxespad=1)
+"""
+           
 plt.tight_layout()
 plt.savefig("plot/filtered_pareto_fronts.png", format="png", dpi=300)
 # plt.show()

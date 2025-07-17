@@ -3,14 +3,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
+from natsort import natsorted
 
-try:
-    import scienceplots
-    plt.style.use(['science', 'no-latex'])
-except ImportError:
-    pass
 
-csv_files = sorted(glob.glob('./data/*.csv'))
+import scienceplots # noqa: F401
+plt.style.use(['science', 'nature'])
+
+csv_files = natsorted(glob.glob('./data/*.csv'))
 if not csv_files:
     raise RuntimeError("No CSV files found")
 
@@ -61,3 +60,4 @@ plt.title("f_recovery (tmp = 0.3)")
 plt.tight_layout()
 plt.savefig("./plot/wtr_Ours_pMPNNonly.png", dpi=300)
 # plt.show()
+plt.close()

@@ -1,3 +1,6 @@
 /experiment_code/__pycache__
 /experiment_code/*/__pycache__
 /experiment_code/*/*/__pycache__
+experiment_code/_copy2.py
+.ruff_cache
+test
