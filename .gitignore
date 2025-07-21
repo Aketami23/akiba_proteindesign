@@ -4,3 +4,4 @@
 experiment_code/_copy2.py
 .ruff_cache
 test
+.DS_Store
