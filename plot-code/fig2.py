@@ -4,7 +4,7 @@ import glob
 import subprocess
 from natsort import natsorted
 
-
+'''
 def fast_non_dominated_sort(values1, values2):
     S=[[] for i in range(0,len(values1))]
     front = [[]]
@@ -69,8 +69,8 @@ with open(output_fasta, "w") as fasta, open(groupname_path, "w") as groupfile:
             wt_col = columns_lower['recovery']
             plddt_col = columns_lower['negative_plddt']
 
-            df = df[df[tm_col] <= -0.9]
-            df = df[df[plddt_col] <= -90]
+            df = df[df[tm_col] <= -0.953]
+            df = df[df[plddt_col] <= -91.907 ]
             if df.empty:
                 continue
 
@@ -95,17 +95,17 @@ with open(output_fasta, "w") as fasta, open(groupname_path, "w") as groupfile:
             groupfile.write(f"{basename}\n")
 
 print(f"FASTA and groupnames list written to {output_fasta} and {groupname_path}")
+'''
 
 cmd = [
     "python",
     "./SSNplot/pySSN_wrapper.py",
-    "-i", "./SSNplot/pareto_sequences.fasta",
+    "-i", "SSNplot/pareto_sequences-Levenshtein-tSNE-checkpoint.npy",
     "--metric", "Levenshtein",
     "--reducer", "tSNE",
     "--grouping", "./SSNplot/seq_groupnames.txt"
 ]
-
-print("\n--- Running pySSN.py with UMAP visualization... ---\n")
+print("\n--- Running pySSN.py ---\n")
 result = subprocess.run(cmd)
 if result.returncode == 0:
     print("pySSN.py ran successfully!")

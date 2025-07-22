@@ -17,8 +17,7 @@ def fast_non_dominated_sort(values1, values2):
     rank = [0 for i in range(0, len(values1))]
 
     for p in range(0,len(values1)):
-        if p%1000 == 0:
-            print(f"Processing point {p+1}/{len(values1)}")
+        print(f"Processing point {p+1}/{len(values1)}")
         S[p]=[]
         n[p]=0
         for q in range(0, len(values1)):
@@ -35,6 +34,7 @@ def fast_non_dominated_sort(values1, values2):
             rank[p] = 0
             if p not in front[0]:
                 front[0].append(p)
+
     i = 0
     while(front[i] != []):
         Q=[]
@@ -55,11 +55,21 @@ csv_files = natsorted(glob.glob('./data/*.csv'))
 if not csv_files:
     raise RuntimeError("No CSV files found")
 
-colors = colormaps['tab20'].colors[:len(csv_files)]
+cmap1 = colormaps['tab20']
+cmap2 = colormaps['tab20b']
+colors = np.vstack([
+    cmap1(np.linspace(0, 1, 20)),
+    cmap2(np.linspace(0, 1, 20))
+])[:len(csv_files)]
+
+plt.rcParams["font.size"] = 20
+
+plt.figure(figsize=(9, 6))
 
 for col, path in zip(colors, csv_files):
     df = pd.read_csv(path)
     columns_lower = {c.lower(): c for c in df.columns}
+    # negative_tm_score,recovery,negative_plddt,raw_jobname,query_sequence
     tm_col = columns_lower['negative_tm_score']
     wt_col = columns_lower['recovery']
     plddt_col = columns_lower.get('negative_plddt', None)
@@ -80,11 +90,21 @@ for col, path in zip(colors, csv_files):
     pareto = df.iloc[selected_idx][[tm_col, wt_col]].values
     pareto_sorted = pareto[np.argsort(pareto[:, 0])]
     plt.plot(pareto_sorted[:, 0], pareto_sorted[:, 1],
-             marker='.', alpha=0.9, color=col, label=os.path.splitext(os.path.basename(path))[0])
+             marker='o', markersize=4, linewidth=1.5,
+             alpha=0.9, color=col, label=os.path.basename(path))
 
 plt.xlabel(r'$\mathrm{f}_{\text{structure}}$')
 plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$')
-plt.legend(fontsize='x-small', loc='upper right')
+plt.tick_params(labelsize=15)
+
+"""
+plt.legend(bbox_to_anchor=(1, 1), 
+           loc='upper right',
+           fontsize=15, 
+           borderaxespad=1)
+"""
 
 plt.tight_layout()
-plt.savefig("plot/pareto_front.png", format="png", dpi=300)
+plt.savefig("./plot/fig4.png", format="png", dpi=300)
+# plt.show()
+plt.close()

@@ -51,7 +51,7 @@ for csv_path in csv_files:
     discrete_cmap = colors.ListedColormap(fixed_colors[1:])
     norm = colors.BoundaryNorm(np.arange(0.5, max_generation + 1.5, 1), max_generation)
 
-    plt.rcParams["font.size"] = 20
+    plt.rcParams["font.size"] = 25
 
     plt.figure(figsize=(10, 6))
     sc = plt.scatter(tm_list, wt_list, c=group_ids,
@@ -63,13 +63,13 @@ for csv_path in csv_files:
     cbar.set_ticks(tick_positions)
 
     plt.xlim(-1.0, 0.0)
-    plt.ylim(0.0, 0.2)
+    plt.ylim(0.0, 0.33)
 
     plt.xlabel(r'$\mathrm{f}_{\text{structure}}$')
     plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$')
     plt.tick_params(labelsize=15)
     plt.tight_layout()
     # plt.show()
-    plt.savefig(f'plot/colored_scatter/tm_wtr_generation_scatter_{name}.png', dpi=300, format='png')
+    plt.savefig(f'plot/{name}_tm_wtr_generation_scatter.png', dpi=300, format='png')
     plt.close()
 

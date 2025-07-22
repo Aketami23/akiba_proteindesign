@@ -18,6 +18,8 @@ import pandas as pd
 import seaborn as sns
 import umap
 from sklearn.manifold import TSNE
+import matplotlib
+
 
 if __name__ == "__main__":
     sns.set(style='white', context='notebook', rc={'figure.figsize':(6,6)})
@@ -149,28 +151,63 @@ if __name__ == "__main__":
     groupingファイルに、グループ分けを書いて、色は自動で振り分ける関数をかく。
     以下の関数plot_scatter_modified以外はほぼ元のスクリプトからコピペです
     """
+    palette_25 = [
+        '#e6194b',  # red
+        '#3cb44b',  # green
+        '#ffe119',  # yellow
+        '#0082c8',  # strong blue
+        '#f58231',  # orange
+        '#911eb4',  # purple
+        '#46f0f0',  # cyan
+        '#f032e6',  # magenta
+        '#d2f53c',  # lime
+        '#008080',  # teal
+        '#aa6e28',  # brown
+        '#800000',  # maroon
+        '#808000',  # olive
+        '#000080',  # navy
+        '#808080',  # gray
+        '#000000',  # black
+        '#bcf60c',  # bright lime
+        '#4363d8',  # deep blue
+        '#9a6324',  # darker brown
+        '#ffd700',  # gold
+        '#00ced1',  # dark turquoise
+        '#ff1493',  # deep pink
+        '#1f78b4',  # medium blue (from ColorBrewer)
+        '#6a3d9a',  # deep purple (from ColorBrewer)
+        '#b15928'   # reddish brown (from ColorBrewer)
+    ]
+
+
+
 
     def plot_scatter_modified(embedding):
         with open(grouping, 'r') as f:
-            lines = f.readlines()
-        groups = [line.strip() for line in lines]
+            groups = [line.strip() for line in f]
         unique_groups = list(dict.fromkeys(groups))
-        if len(unique_groups) <= 10:
-            # 10個以下なら tab10カラーマップを使用
-            color_palette = plt.cm.tab10(np.linspace(0, 1, len(unique_groups)))
-        else:
-            # 多い場合はより大きなカラーマップを使用
-            color_palette = plt.cm.Set3(np.linspace(0, 1, len(unique_groups)))
+
+        # seabornで視認性の高いカラーパレット生成
+        color_palette = palette_25
         group_to_color = dict(zip(unique_groups, color_palette))
+        print(f"Unique groups: {unique_groups}")
+
         plt.figure()
         for group in unique_groups:
             group_mask = np.array(groups) == group
             group_points = embedding[group_mask]
-            plt.scatter(group_points[:,0], group_points[:,1], c=[group_to_color[group]], s=5, label=group)
+
+            marker_style = '^' if group == 'proteinMPNN03' else 'o'
+            point_size = 15 if group == 'proteinMPNN03' else 5
+
+            plt.scatter(group_points[:, 0], group_points[:, 1],
+                        c=[group_to_color[group]], s=point_size, label=group, marker=marker_style)
+
         plt.xticks([])
         plt.yticks([])
-        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
         plt.savefig(f"{name}-{metric}-{reducer}.png", bbox_inches="tight", dpi=600)
+
 
     if ftype == 'fasta':
         records = [str(rec.seq) for rec in SeqIO.parse(input_file, "fasta")]

@@ -1,4 +1,3 @@
-
 import glob
 import os
 import numpy as np
@@ -6,9 +5,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
 from natsort import natsorted
-
 import scienceplots # noqa: F401
 plt.style.use(['science', 'nature'])
+
+csv_files = natsorted(glob.glob('./data/*.csv'))
+if not csv_files:
+    raise RuntimeError("No CSV files found")
+
+cmap1 = colormaps['tab20']
+cmap2 = colormaps['tab20b']
+colors = np.vstack([
+    cmap1(np.linspace(0, 1, 20)),
+    cmap2(np.linspace(0, 1, 20))
+])[:len(csv_files)]
 
 def fast_non_dominated_sort(values1, values2):
     S=[[] for i in range(0,len(values1))]
@@ -34,7 +43,6 @@ def fast_non_dominated_sort(values1, values2):
             rank[p] = 0
             if p not in front[0]:
                 front[0].append(p)
-
     i = 0
     while(front[i] != []):
         Q=[]
@@ -51,17 +59,6 @@ def fast_non_dominated_sort(values1, values2):
     del front[len(front)-1]
     return front
 
-csv_files = natsorted(glob.glob('./data/*.csv'))
-if not csv_files:
-    raise RuntimeError("No CSV files found")
-
-cmap1 = colormaps['tab20']
-cmap2 = colormaps['tab20b']
-colors = np.vstack([
-    cmap1(np.linspace(0, 1, 20)),
-    cmap2(np.linspace(0, 1, 20))
-])[:len(csv_files)]
-
 plt.rcParams["font.size"] = 20
 
 plt.figure(figsize=(9, 6))
@@ -69,7 +66,6 @@ plt.figure(figsize=(9, 6))
 for col, path in zip(colors, csv_files):
     df = pd.read_csv(path)
     columns_lower = {c.lower(): c for c in df.columns}
-    # negative_tm_score,recovery,negative_plddt,raw_jobname,query_sequence
     tm_col = columns_lower['negative_tm_score']
     wt_col = columns_lower['recovery']
     plddt_col = columns_lower.get('negative_plddt', None)
@@ -78,8 +74,8 @@ for col, path in zip(colors, csv_files):
     if seq_col:
         df = df.drop_duplicates(subset=seq_col, keep='first')
 
-    df = df[df[tm_col] <= 0] if tm_col else df
-    df = df[df[plddt_col] <= 0] if plddt_col else df
+    df = df[df[tm_col] <= -0.953] if tm_col else df
+    df = df[df[plddt_col] <= -91.907] if plddt_col else df
     values1 = df[tm_col].values
     values2 = df[wt_col].values
     fronts = fast_non_dominated_sort(values1, values2)
@@ -90,7 +86,7 @@ for col, path in zip(colors, csv_files):
     pareto = df.iloc[selected_idx][[tm_col, wt_col]].values
     pareto_sorted = pareto[np.argsort(pareto[:, 0])]
     plt.plot(pareto_sorted[:, 0], pareto_sorted[:, 1],
-             marker='o', markersize=4, linewidth=1.5,
+             marker='.', markersize=4, linewidth=1.5,
              alpha=0.9, color=col, label=os.path.basename(path))
 
 plt.xlabel(r'$\mathrm{f}_{\text{structure}}$')
@@ -103,8 +99,7 @@ plt.legend(bbox_to_anchor=(1, 1),
            fontsize=15, 
            borderaxespad=1)
 """
-
+           
 plt.tight_layout()
-plt.savefig("./plot/Distribution_pareto_fronts.png", format="png", dpi=300)
-# plt.show()
-plt.close()
+plt.savefig("plot/figsup_filtered_pareto_fronts.png", format="png", dpi=300)
+plt.show()
