@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import os
+ENV = {"TF_FORCE_UNIFIED_MEMORY":"1", "XLA_PYTHON_CLIENT_MEM_FRACTION":"4.0"}
+for k,v in ENV.items():
+    if k not in os.environ: os.environ[k] = v
+
 import warnings
 from Bio import BiopythonDeprecationWarning # what can possibly go wrong...
+warnings.simplefilter(action='ignore', category=BiopythonDeprecationWarning)
 
 import json
 import logging
@@ -15,6 +21,9 @@ import pickle
 import gzip
 
 ## 追加したimport
+import csv
+import subprocess
+import re
 import pandas as pd
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -22,21 +31,20 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 from io import StringIO
 from silence_tensorflow import silence_tensorflow
+silence_tensorflow()
 
 import importlib_metadata
 import numpy as np
 # import pandas
 
 try:
-    import alphafold # noqa: F401
+    import alphafold
 except ModuleNotFoundError:
     raise RuntimeError(
         "\n\nalphafold is not installed. Please run `pip install colabfold[alphafold]`\n"
     )
 
 from alphafold.common import protein, residue_constants
-
-import os
 
 # delay imports of tensorflow, jax and numpy
 # loading these for type checking only can take around 10 seconds just to show a CLI usage message
@@ -45,7 +53,7 @@ if TYPE_CHECKING:
     from alphafold.model import model
     from numpy import ndarray
 
-from alphafold.common.protein import Protein # noqa: F401
+from alphafold.common.protein import Protein
 from alphafold.data import (
     feature_processing,
     msa_pairing,
@@ -59,10 +67,10 @@ from colabfold.download import default_data_dir, download_alphafold_params
 from colabfold.utils import (
     ACCEPT_DEFAULT_TERMS,
     DEFAULT_API_SERVER,
-    NO_GPU_FOUND,  # noqa: F401
+    NO_GPU_FOUND,
     CIF_REVISION_DATE,
     get_commit,
-    safe_filename,  # noqa: F401
+    safe_filename,
     setup_logging,
     CFMMCIFIO,
 )
@@ -72,35 +80,10 @@ from colabfold.alphafold import extra_ptm
 from Bio.PDB import MMCIFParser, PDBParser, MMCIF2Dict
 from Bio.PDB.PDBIO import Select
 import glob
-
-import jax  # noqa: F401
-import jax.numpy as jnp  # noqa: F401
-
-from colabfold.colabfold import run_mmseqs2
-
-### ここから下は私が追加した関数
-from evaluation_functions.plddt.utils import calculate_plddt
-from evaluation_functions.tmscore.utils import calculate_tmscore, calculate_default_tmscore
-from evaluation_functions.recovery.utils import calculate_recovery
-from nsga_ii.utils import index_of, sort_by_values, fast_non_dominated_sort, crowding_distance
-from nsga_ii.mutation_and_generation.utils import generate_offspring_npmm, generate_random_sequence_list
-from input_output.utils import write_csv, get_column_values
-### ここまで
-
-# from alphafold.notebooks.notebook_utils import get_pae_json
-from colabfold.alphafold.models import load_models_and_params
-from colabfold.colabfold import plot_paes, plot_plddts
-from colabfold.plot import plot_msa_v2
-
-ENV = {"TF_FORCE_UNIFIED_MEMORY":"1", "XLA_PYTHON_CLIENT_MEM_FRACTION":"4.0"}
-for k,v in ENV.items():
-    if k not in os.environ:
-        os.environ[k] = v
-warnings.simplefilter(action='ignore', category=BiopythonDeprecationWarning)
-
-silence_tensorflow()
 # logging settings
 logger = logging.getLogger(__name__)
+import jax
+import jax.numpy as jnp
 
 # from jax 0.4.6, jax._src.lib.xla_bridge moved to jax._src.xla_bridge
 # suppress warnings: Unable to initialize backend 'rocm' or 'tpu'
@@ -133,13 +116,13 @@ def mk_mock_template(
         "template_all_atom_masks": np.tile(
             templates_all_atom_masks[None], [num_temp, 1, 1]
         ),
-        "template_sequence": ["none".encode()] * num_temp,
+        "template_sequence": [f"none".encode()] * num_temp,
         "template_aatype": np.tile(np.array(templates_aatype)[None], [num_temp, 1, 1]),
         "template_confidence_scores": np.tile(
             output_confidence_scores[None], [num_temp, 1]
         ),
-        "template_domain_names": ["none".encode()] * num_temp,
-        "template_release_date": ["none".encode()] * num_temp,
+        "template_domain_names": [f"none".encode()] * num_temp,
+        "template_release_date": [f"none".encode()] * num_temp,
         "template_sum_probs": np.zeros([num_temp], dtype=np.float32),
     }
     return template_features
@@ -206,7 +189,7 @@ modified_mapping = {
   "HY3" : "PRO", "LLP" : "LYS", "MGN" : "GLN", "MHS" : "HIS",
   "TRQ" : "TRP", "B3Y" : "TYR", "PHI" : "PHE", "PTR" : "TYR",
   "TYS" : "TYR", "IAS" : "ASP", "GPL" : "LYS", "KYN" : "TRP",
-  "SEC" : "CYS"
+  "CSD" : "CYS", "SEC" : "CYS"
 }
 
 
@@ -432,10 +415,8 @@ def predict_structure(
 
             # monitor intermediate results
             def callback(result, recycles):
-                if recycles == 0: 
-                    result.pop("tol",None)
-                if not is_complex: 
-                    result.pop("iptm",None)
+                if recycles == 0: result.pop("tol",None)
+                if not is_complex: result.pop("iptm",None)
                 print_line = ""
                 for x,y in [["mean_plddt","pLDDT"],["ptm","pTM"],["iptm","ipTM"],["tol","tol"]]:
                   if x in result:
@@ -481,10 +462,8 @@ def predict_structure(
 
             # summary metrics
             mean_scores.append(result["ranking_confidence"])
-            if recycles == 0: 
-                result.pop("tol",None)
-            if not is_complex: 
-                result.pop("iptm",None)
+            if recycles == 0: result.pop("tol",None)
+            if not is_complex: result.pop("iptm",None)
             print_line = ""
             conf.append({})
             for x,y in [["mean_plddt","pLDDT"],["ptm","pTM"],["iptm","ipTM"], ['actifptm', 'actifpTM']]:
@@ -537,8 +516,7 @@ def predict_structure(
                   if calc_extra_ptm:
                     scores.update(extra_ptm_output)
                   for k in ["ptm","iptm"]:
-                    if k in conf[-1]: 
-                        scores[k] = np.around(conf[-1][k], 2).item()
+                    if k in conf[-1]: scores[k] = np.around(conf[-1][k], 2).item()
                   del pae
                 del plddt
                 json.dump(scores, handle)
@@ -546,18 +524,14 @@ def predict_structure(
             del result, unrelaxed_protein
 
             # early stop criteria fulfilled
-            if mean_scores[-1] > stop_at_score: 
-                break
+            if mean_scores[-1] > stop_at_score: break
 
         # early stop criteria fulfilled
-        if mean_scores[-1] > stop_at_score: 
-            break
+        if mean_scores[-1] > stop_at_score: break
 
         # cleanup
-        if "multimer" not in model_type: 
-            del input_features
-    if "multimer" in model_type: 
-        del input_features
+        if "multimer" not in model_type: del input_features
+    if "multimer" in model_type: del input_features
 
     ###################################################
     # rerank models based on predicted confidence
@@ -790,11 +764,11 @@ def get_msa_and_templates(
 ) -> Tuple[
     Optional[List[str]], Optional[List[str]], List[str], List[int], List[Dict[str, Any]]
 ]:
+    from colabfold.colabfold import run_mmseqs2
 
     use_env = msa_mode == "mmseqs2_uniref_env" or msa_mode == "mmseqs2_uniref_env_envpair"
     use_envpair = msa_mode == "mmseqs2_uniref_env_envpair"
-    if isinstance(query_sequences, str): 
-        query_sequences = [query_sequences]
+    if isinstance(query_sequences, str): query_sequences = [query_sequences]
 
     # remove duplicates before searching
     query_seqs_unique = []
@@ -1027,7 +1001,7 @@ def pair_msa(
             paired_msa, query_seqs_unique, query_seqs_cardinality
         )
     else:
-        raise ValueError("Invalid pairing")
+        raise ValueError(f"Invalid pairing")
     return a3m_lines
 
 
@@ -1144,7 +1118,7 @@ def unserialize_msa(
         )
 
     if len(a3m_lines) < 3:
-        raise ValueError("Unknown file format a3m")
+        raise ValueError(f"Unknown file format a3m")
     tab_sep_entries = a3m_lines[0][1:].split("\t")
     query_seq_len = tab_sep_entries[0].split(",")
     query_seq_len = list(map(int, query_seq_len))
@@ -1292,6 +1266,14 @@ def put_mmciffiles_into_resultdir(
                 if not result_file.exists():
                     print(f"WARNING: {pdb_id} does not exist in {local_pdb_path}.")
 
+### ここから下は私が追加した関数
+from evaluation_functions.plddt.utils import calculate_plddt
+from evaluation_functions.tmscore.utils import calculate_tmscore
+from evaluation_functions.recovery.utils import calculate_recovery
+from nsga_ii.utils import index_of, sort_by_values, fast_non_dominated_sort, crowding_distance
+from nsga_ii.mutation_and_generation.utils import generate_offspring_npmm, generate_random_sequence_list
+from input_output.utils import write_csv, get_column_values
+
 
 def get_new_result_files(output_dir: str, name: str) -> Tuple[Optional[str], Optional[str]]:
     # ハードコーディング
@@ -1384,6 +1366,11 @@ def run(
             # disable GPU on tensorflow
             tf.config.set_visible_devices([], 'GPU')
 
+    # from alphafold.notebooks.notebook_utils import get_pae_json
+    from colabfold.alphafold.models import load_models_and_params
+    from colabfold.colabfold import plot_paes, plot_plddts
+    from colabfold.plot import plot_msa_v2
+
     data_dir = Path(data_dir)
     result_dir = Path(result_dir)
     result_dir.mkdir(exist_ok=True)
@@ -1427,10 +1414,8 @@ def run(
     for _, query_sequence, _ in queries:
         N = 1 if isinstance(query_sequence,str) else len(query_sequence)
         L = len("".join(query_sequence))
-        if L > max_len: 
-            max_len = L
-        if N > max_num: 
-            max_num = N
+        if L > max_len: max_len = L
+        if N > max_num: max_num = N
 
     # get max sequences
     # 512 5120 = alphafold_ptm (models 1,3,4)
@@ -1449,10 +1434,8 @@ def run(
 
     if msa_mode == "single_sequence":
         num_seqs = 1
-        if is_complex and "multimer" not in model_type: 
-            num_seqs += max_num
-        if use_templates: 
-            num_seqs += 4
+        if is_complex and "multimer" not in model_type: num_seqs += max_num
+        if use_templates: num_seqs += 4
         max_seq = min(num_seqs, max_seq)
         max_extra_seq = max(min(num_seqs - max_seq, max_extra_seq), 1)
 
@@ -1665,8 +1648,7 @@ def run(
                             else:
                                 num_seqs = int(len(feature_dict["msa"]))
 
-                            if use_templates: 
-                                num_seqs += 4
+                            if use_templates: num_seqs += 4
 
                             # adjust max settings
                             max_seq = min(num_seqs, max_seq)
@@ -2211,8 +2193,7 @@ def main():
     # disable unified memory
     if args.disable_unified_memory:
         for k in ENV.keys():
-            if k in os.environ: 
-                del os.environ[k]
+            if k in os.environ: del os.environ[k]
 
     setup_logging(Path(args.results).joinpath("log.txt"))
 

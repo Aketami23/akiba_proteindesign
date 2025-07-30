@@ -58,7 +58,7 @@ def run_inference(config_path: str, model:any, init_seq: str, design_only_positi
     bias_by_res_dict = None
     bias_AAs_np = np.zeros(len(alphabet))
     # wild_type = "DIQVQVNIDDNGKNFDYTYTVTTESELQKVLNELMDYIKKQGAKRVRISITARTKKEAEKFAAILIKVFAELGYNDINVTFDGDTVTVEGQL"
-    # known_seq = _config["known_sequence"]["sequence"] 
+    # known_seq = _config["known_sequence"]["sequence"]
     protein = {'seq_chain_A': init_seq, 
                'coords_chain_A': _config["target_structure"]["formated_coordinate"], 
                'name': '1qys', 

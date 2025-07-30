@@ -1,7 +1,7 @@
 #!/bin/bash
 #$ -cwd
 #$ -l gpu_1=1
-#$ -l h_rt=10:00:00
+#$ -l h_rt=15:00:00
 
 DATE=$(date +"%Y%m%d")
 

@@ -6,3 +6,6 @@ experiment_code/_copy2.py
 test
 .DS_Store
 plot-code/tempCodeRunnerFile.py
+experiment_code/*.sh.e*
+experiment_code/*.sh.o*
+experiment_code/_copy.py
