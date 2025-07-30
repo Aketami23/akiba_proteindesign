@@ -80,7 +80,7 @@ from colabfold.colabfold import run_mmseqs2
 
 ### ここから下は私が追加した関数
 from evaluation_functions.plddt.utils import calculate_plddt
-from evaluation_functions.tmscore.utils import calculate_tmscore
+from evaluation_functions.tmscore.utils import calculate_tmscore, calculate_default_tmscore
 from evaluation_functions.recovery.utils import calculate_recovery
 from nsga_ii.utils import index_of, sort_by_values, fast_non_dominated_sort, crowding_distance
 from nsga_ii.mutation_and_generation.utils import generate_offspring_npmm, generate_random_sequence_list

@@ -18,7 +18,6 @@ import pandas as pd
 import seaborn as sns
 import umap
 from sklearn.manifold import TSNE
-import matplotlib
 
 
 if __name__ == "__main__":
@@ -152,10 +151,10 @@ if __name__ == "__main__":
     以下の関数plot_scatter_modified以外はほぼ元のスクリプトからコピペです
     """
     palette_25 = [
-        '#e6194b',  # red
+        "#3819e6",  # red
         '#3cb44b',  # green
         '#ffe119',  # yellow
-        '#0082c8',  # strong blue
+        "#8fc800",  # strong blue
         '#f58231',  # orange
         '#911eb4',  # purple
         '#46f0f0',  # cyan
@@ -169,13 +168,13 @@ if __name__ == "__main__":
         '#808080',  # gray
         '#000000',  # black
         '#bcf60c',  # bright lime
-        '#4363d8',  # deep blue
+        "#43c4d8",  # deep blue
         '#9a6324',  # darker brown
         '#ffd700',  # gold
         '#00ced1',  # dark turquoise
-        '#ff1493',  # deep pink
-        '#1f78b4',  # medium blue (from ColorBrewer)
+        '#ff1493',          # deep pink
         '#6a3d9a',  # deep purple (from ColorBrewer)
+        "#ed1717",  # medium blue (from ColorBrewer)
         '#b15928'   # reddish brown (from ColorBrewer)
     ]
 
@@ -197,11 +196,11 @@ if __name__ == "__main__":
             group_mask = np.array(groups) == group
             group_points = embedding[group_mask]
 
-            marker_style = '^' if group == 'proteinMPNN03' else 'o'
-            point_size = 15 if group == 'proteinMPNN03' else 5
+            marker_style = '+' if group == 'proteinMPNN03' else 'o'
+            point_size = 10 if group == 'proteinMPNN03' else 5
 
             plt.scatter(group_points[:, 0], group_points[:, 1],
-                        c=[group_to_color[group]], s=point_size, label=group, marker=marker_style)
+                        c=[group_to_color[group]], s=point_size, label=group, marker=marker_style, lw=0.5)
 
         plt.xticks([])
         plt.yticks([])

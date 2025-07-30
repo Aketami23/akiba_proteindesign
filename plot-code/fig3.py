@@ -70,6 +70,6 @@ for csv_path in csv_files:
     plt.tick_params(labelsize=15)
     plt.tight_layout()
     # plt.show()
-    plt.savefig(f'plot/{name}_tm_wtr_generation_scatter.png', dpi=300, format='png')
+    plt.savefig(f'plot/fig3/{name}_tm_wtr_generation_scatter.png', dpi=300, format='png')
     plt.close()
 

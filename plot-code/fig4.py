@@ -62,7 +62,7 @@ colors = np.vstack([
     cmap2(np.linspace(0, 1, 20))
 ])[:len(csv_files)]
 
-plt.rcParams["font.size"] = 20
+plt.rcParams["font.size"] = 25
 
 plt.figure(figsize=(9, 6))
 
