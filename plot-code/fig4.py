@@ -1,110 +1,75 @@
-
-import glob
-import os
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib import colormaps
+from matplotlib import colormaps, colors
+import numpy as np
 from natsort import natsorted
+import glob
+from pathlib import Path
 
 import scienceplots # noqa: F401
 plt.style.use(['science', 'nature'])
-
-def fast_non_dominated_sort(values1, values2):
-    S=[[] for i in range(0,len(values1))]
-    front = [[]]
-    n=[0 for i in range(0,len(values1))]
-    rank = [0 for i in range(0, len(values1))]
-
-    for p in range(0,len(values1)):
-        print(f"Processing point {p+1}/{len(values1)}")
-        S[p]=[]
-        n[p]=0
-        for q in range(0, len(values1)):
-            if (values1[p] < values1[q] and values2[p] < values2[q]) or \
-                (values1[p] <= values1[q] and values2[p] < values2[q]) or \
-                (values1[p] < values1[q] and values2[p] <= values2[q]):
-                if q not in S[p]:
-                    S[p].append(q)
-            elif (values1[q] < values1[p] and values2[q] < values2[p]) or \
-                (values1[q] <= values1[p] and values2[q] < values2[p]) or \
-                (values1[q] < values1[p] and values2[q] <= values2[p]):
-                n[p] = n[p] + 1
-        if n[p]==0:
-            rank[p] = 0
-            if p not in front[0]:
-                front[0].append(p)
-
-    i = 0
-    while(front[i] != []):
-        Q=[]
-        for p in front[i]:
-            for q in S[p]:
-                n[q] =n[q] - 1
-                if( n[q]==0):
-                    rank[q]=i+1
-                    if q not in Q:
-                        Q.append(q)
-        i = i+1
-        front.append(Q)
-
-    del front[len(front)-1]
-    return front
 
 csv_files = natsorted(glob.glob('./data/*.csv'))
 if not csv_files:
     raise RuntimeError("No CSV files found")
 
-cmap1 = colormaps['tab20']
-cmap2 = colormaps['tab20b']
-colors = np.vstack([
-    cmap1(np.linspace(0, 1, 20)),
-    cmap2(np.linspace(0, 1, 20))
-])[:len(csv_files)]
+for csv_path in csv_files:
 
-plt.rcParams["font.size"] = 25
+    name = Path(csv_path).stem
+    print(f"Processing {name}...")
 
-plt.figure(figsize=(9, 6))
+    df = pd.read_csv(csv_path)
 
-for col, path in zip(colors, csv_files):
-    df = pd.read_csv(path)
     columns_lower = {c.lower(): c for c in df.columns}
-    # negative_tm_score,recovery,negative_plddt,raw_jobname,query_sequence
     tm_col = columns_lower['negative_tm_score']
     wt_col = columns_lower['recovery']
-    plddt_col = columns_lower.get('negative_plddt', None)
-    seq_col = columns_lower.get('query_sequence', None)
+    qseq_col = columns_lower.get('query_sequence')
 
-    if seq_col:
-        df = df.drop_duplicates(subset=seq_col, keep='first')
+    max_generation = 500
+    points_per_generation = 20
 
-    df = df[df[tm_col] <= 0] if tm_col else df
-    df = df[df[plddt_col] <= 0] if plddt_col else df
-    values1 = df[tm_col].values
-    values2 = df[wt_col].values
-    fronts = fast_non_dominated_sort(values1, values2)
-    if not fronts or not fronts[0]:
-        print(f"{os.path.basename(path)}: No Pareto front found, skipping.")
-        continue
-    selected_idx = fronts[0]
-    pareto = df.iloc[selected_idx][[tm_col, wt_col]].values
-    pareto_sorted = pareto[np.argsort(pareto[:, 0])]
-    plt.plot(pareto_sorted[:, 0], pareto_sorted[:, 1],
-             marker='o', markersize=4, linewidth=1.5,
-             alpha=0.9, color=col, label=os.path.basename(path))
+    tm_list, wt_list, group_ids = [], [], []
+    seen_qseq = set()
 
-plt.xlabel(r'$\mathrm{f}_{\text{structure}}$')
-plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$')
-plt.tick_params(labelsize=15)
+    for idx, row in df.iterrows():
+        gen_id = idx // points_per_generation + 1 
+        if gen_id > max_generation:
+            break
 
-"""
-plt.legend(bbox_to_anchor=(1, 1), 
-           loc='upper right',
-           fontsize=15, 
-           borderaxespad=1)
-"""
+        if qseq_col is not None:
+            qseq = row[qseq_col]
+            if qseq in seen_qseq:
+                continue
+            seen_qseq.add(qseq)
 
-plt.tight_layout()
-plt.savefig("./plot/fig4.png", format="png", dpi=300)
-# plt.show()
-plt.close()
+        tm_list.append(row[tm_col])
+        wt_list.append(row[wt_col])
+        group_ids.append(gen_id)
+
+    cmap = colormaps['plasma']
+    fixed_colors = cmap(np.linspace(0, 1, max_generation+1))
+    discrete_cmap = colors.ListedColormap(fixed_colors[1:])
+    norm = colors.BoundaryNorm(np.arange(0.5, max_generation + 1.5, 1), max_generation)
+
+    plt.rcParams["font.size"] = 25
+
+    plt.figure(figsize=(10, 6))
+    sc = plt.scatter(tm_list, wt_list, c=group_ids,
+                    cmap=discrete_cmap, norm=norm,
+                    s=20, edgecolors='none')
+
+    cbar = plt.colorbar(sc, label='Generation Number',)
+    tick_positions = np.concatenate([[1], np.arange(50, max_generation + 1, 50)])
+    cbar.set_ticks(tick_positions)
+
+    plt.xlim(-1.0, 0.0)
+    plt.ylim(0.0, 0.33)
+
+    plt.xlabel(r'$\mathrm{f}_{\text{structure}}$')
+    plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$')
+    plt.tick_params(labelsize=15)
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig(f'plot/fig3/{name}_tm_wtr_generation_scatter.png', dpi=300, format='png')
+    plt.close()
+

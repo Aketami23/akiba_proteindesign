@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import os
-ENV = {"TF_FORCE_UNIFIED_MEMORY":"1", "XLA_PYTHON_CLIENT_MEM_FRACTION":"4.0"}
-for k,v in ENV.items():
-    if k not in os.environ: os.environ[k] = v
+
 
 import warnings
 from Bio import BiopythonDeprecationWarning # what can possibly go wrong...
-warnings.simplefilter(action='ignore', category=BiopythonDeprecationWarning)
+
 
 import json
 import logging
@@ -80,10 +78,24 @@ from colabfold.alphafold import extra_ptm
 from Bio.PDB import MMCIFParser, PDBParser, MMCIF2Dict
 from Bio.PDB.PDBIO import Select
 import glob
-# logging settings
-logger = logging.getLogger(__name__)
 import jax
 import jax.numpy as jnp
+
+### ここから下は私が追加した関数
+from evaluation_functions.plddt.utils import calculate_plddt
+from evaluation_functions.tmscore.utils import calculate_tmscore, calculate_default_tmscore
+from evaluation_functions.recovery.utils import calculate_recovery
+from nsga_ii.utils import index_of, sort_by_values, fast_non_dominated_sort, crowding_distance
+from nsga_ii.mutation_and_generation.utils import generate_offspring_npmm, generate_random_sequence_list
+from input_output.utils import write_csv, get_column_values
+
+ENV = {"TF_FORCE_UNIFIED_MEMORY":"1", "XLA_PYTHON_CLIENT_MEM_FRACTION":"4.0"}
+for k,v in ENV.items():
+    if k not in os.environ: os.environ[k] = v
+warnings.simplefilter(action='ignore', category=BiopythonDeprecationWarning)
+
+# logging settings
+logger = logging.getLogger(__name__)
 
 # from jax 0.4.6, jax._src.lib.xla_bridge moved to jax._src.xla_bridge
 # suppress warnings: Unable to initialize backend 'rocm' or 'tpu'
@@ -189,7 +201,7 @@ modified_mapping = {
   "HY3" : "PRO", "LLP" : "LYS", "MGN" : "GLN", "MHS" : "HIS",
   "TRQ" : "TRP", "B3Y" : "TYR", "PHI" : "PHE", "PTR" : "TYR",
   "TYS" : "TYR", "IAS" : "ASP", "GPL" : "LYS", "KYN" : "TRP",
-  "CSD" : "CYS", "SEC" : "CYS"
+  "SEC" : "CYS"
 }
 
 
@@ -1266,14 +1278,6 @@ def put_mmciffiles_into_resultdir(
                 if not result_file.exists():
                     print(f"WARNING: {pdb_id} does not exist in {local_pdb_path}.")
 
-### ここから下は私が追加した関数
-from evaluation_functions.plddt.utils import calculate_plddt
-from evaluation_functions.tmscore.utils import calculate_tmscore
-from evaluation_functions.recovery.utils import calculate_recovery
-from nsga_ii.utils import index_of, sort_by_values, fast_non_dominated_sort, crowding_distance
-from nsga_ii.mutation_and_generation.utils import generate_offspring_npmm, generate_random_sequence_list
-from input_output.utils import write_csv, get_column_values
-
 
 def get_new_result_files(output_dir: str, name: str) -> Tuple[Optional[str], Optional[str]]:
     # ハードコーディング
@@ -1768,8 +1772,7 @@ def run(
 
                 ## 以下で評価する
                 negative_plddt_score = calculate_plddt(new_result_json)
-                negative_tm_score = calculate_tmscore(purpose_pdb, new_result_pdb, config_path)
-                # negative_sol_score = calculate_sol(query_sequence, result_dir)
+                negative_tm_score = calculate_default_tmscore(purpose_pdb, new_result_pdb, config_path)
                 recovery_score = calculate_recovery(query_sequence, config_path)
 
                 write_csv(query, negative_tm_score, negative_plddt_score, recovery_score, output_csv)

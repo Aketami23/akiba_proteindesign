@@ -172,10 +172,10 @@ if __name__ == "__main__":
         '#9a6324',  # darker brown
         '#ffd700',  # gold
         '#00ced1',  # dark turquoise
-        '#ff1493',          # deep pink
+        '#ff1493',  # deep pink
         '#6a3d9a',  # deep purple (from ColorBrewer)
+        '#b15928',   # reddish brown (from ColorBrewer)
         "#ed1717",  # medium blue (from ColorBrewer)
-        '#b15928'   # reddish brown (from ColorBrewer)
     ]
 
 
