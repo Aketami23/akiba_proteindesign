@@ -105,6 +105,6 @@ plt.legend(bbox_to_anchor=(1, 1),
 """
 
 plt.tight_layout()
-plt.savefig("./plot/fig4.png", format="png", dpi=300)
+plt.savefig("./plot/fig3.png", format="png", dpi=300)
 # plt.show()
 plt.close()
