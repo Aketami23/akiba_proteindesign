@@ -10,3 +10,6 @@ experiment_code/*.sh.e*
 experiment_code/*.sh.o*
 experiment_code/_copy.py
 SSNplot/*-checkpoint.*
+experiment_code/demo_script.sh
+plot-code/fig_fillter_fig1.py
+plot-code/fig_every5.py
