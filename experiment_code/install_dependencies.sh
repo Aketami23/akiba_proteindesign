@@ -5,8 +5,7 @@ if [ -d ".venv" ]; then
   source .venv/bin/activate
 fi
 
-pip install --upgrade pip
-pip install Cython setuptools numpy
+uv add Cython setuptools numpy
 
 # ===== 1. Doxygen =====
 DOXYGEN_VER=1.9.8

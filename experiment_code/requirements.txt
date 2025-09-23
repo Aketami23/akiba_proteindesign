@@ -6,7 +6,7 @@ biopython==1.82
 certifi==2024.12.14
 charset-normalizer==3.4.1
 chex==0.1.88
-colabfold @ git+https://github.com/sokrypton/ColabFold@406d4c6cf25a0755f61b3adac7c5d47d3025f42c
+colabfold==1.5.5
 contourpy==1.3.1
 cycler==0.12.1
 dm-haiku==0.0.12
@@ -32,7 +32,7 @@ jax-cuda12-plugin==0.4.35
 jaxlib==0.4.34
 Jinja2==3.1.6
 jmp==0.0.4
-keras==3.8.0
+keras==2.13.1
 kiwisolver==1.4.8
 libclang==18.1.1
 Markdown==3.7
@@ -62,12 +62,14 @@ nvidia-cusparselt-cu12==0.6.2
 nvidia-nccl-cu12==2.21.5
 nvidia-nvjitlink-cu12==12.4.127
 nvidia-nvtx-cu12==12.4.127
+OpenMM==7.7.0
 opt_einsum==3.4.0
 optax==0.2.4
 optree==0.14.0
 orbax-checkpoint==0.11.0
 packaging==24.2
 pandas==1.5.3
+pdbfixer @ file:///home/conda/feedstock_root/build_artifacts/pdbfixer_1631833746479/work
 pillow==11.1.0
 protobuf==5.29.3
 py3Dmol==2.4.2
@@ -84,15 +86,18 @@ simplejson==3.19.3
 six==1.17.0
 sympy==1.13.1
 tabulate==0.9.0
+tensorboard==2.18.0
 tensorboard-data-server==0.7.2
+tensorflow==2.18.0
 tensorflow-io-gcs-filesystem==0.37.1
+tensorflow_cpu==2.18.0
 tensorstore==0.1.71
 termcolor==2.5.0
 toolz==1.0.0
 torch==2.6.0
 tqdm==4.67.1
 triton==3.2.0
-typing_extensions==4.12.2
+typing-extensions<4.6.0
 urllib3==2.3.0
 Werkzeug==3.1.3
 wrapt==1.17.2
