@@ -13,3 +13,4 @@ SSNplot/*-checkpoint.*
 experiment_code/demo_script.sh
 plot-code/fig_fillter_fig1.py
 plot-code/fig_every5.py
+experiment_code/tsubame_script.sh
