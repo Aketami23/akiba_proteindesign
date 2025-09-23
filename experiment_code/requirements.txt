@@ -69,7 +69,6 @@ optree==0.14.0
 orbax-checkpoint==0.11.0
 packaging==24.2
 pandas==1.5.3
-pdbfixer @ file:///home/conda/feedstock_root/build_artifacts/pdbfixer_1631833746479/work
 pillow==11.1.0
 protobuf==5.29.3
 py3Dmol==2.4.2
