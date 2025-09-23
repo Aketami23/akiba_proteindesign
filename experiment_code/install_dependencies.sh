@@ -5,7 +5,15 @@ if [ -d ".venv" ]; then
   source .venv/bin/activate
 fi
 
+uv python pin 3.10.16
+
 uv add Cython setuptools numpy
+
+wget https://github.com/openmm/openmm/archive/refs/tags/8.1.1.tar.gz
+tar zxvf 8.1.1.tar.gz
+cd openmm-8.1.1
+mkdir build
+cd build
 
 # ===== 1. Doxygen =====
 DOXYGEN_VER=1.9.8
@@ -30,29 +38,20 @@ fi
 export PATH="${SWIG_PREFIX}/bin:$PATH"
 
 # ===== 3. OpenMM =====
-OPENMM_VER=8.1.1
-if [ ! -d "openmm-${OPENMM_VER}" ]; then
-  wget -q https://github.com/openmm/openmm/archive/refs/tags/${OPENMM_VER}.tar.gz -O openmm-${OPENMM_VER}.tar.gz
-  tar -xzf openmm-${OPENMM_VER}.tar.gz
-fi
+# install(FILES
+#     "${CMAKE_CURRENT_BINARY_DIR}/OpenMMCWrapper.h"
+#     "${CMAKE_CURRENT_BINARY_DIR}/OpenMMFortranModule.f90"
+#     DESTINATION include
+# )
 
-SITE_PACKAGES=$(python -c 'import site; print(site.getsitepackages()[0])')
+cmake .. -DCMAKE_INSTALL_PREFIX="${HOME}/apps/openmm/8.1.1" -DPYTHON_EXECUTABLE="/path/to/your/.venv/bin/python3.10.16"
+make -j8 instal
 
-pushd openmm-${OPENMM_VER}
-rm -rf build
-mkdir build && cd build
+uv add numpy==1.26.4
 
-cmake .. \
-  -DCMAKE_INSTALL_PREFIX="${HOME}/.local/openmm/${OPENMM_VER}" \
-  -DPYTHON_EXECUTABLE="$(which python)" \
-  -DDOXYGEN_EXECUTABLE="$(which doxygen)" \
-  -DSWIG_EXECUTABLE="$(which swig)" \
-  -DPYTHON_INSTALL_PREFIX="${SITE_PACKAGES}" \
-  -DOPENMM_GENERATE_API_DOCS=OFF
-
-make -j"$(nproc)" install
 make PythonInstall
 
-popd
-
-python -m openmm.testInstallation
+wget https://github.com/openmm/pdbfixer/archive/refs/tags/1.9.tar.gz
+tar zxvf 1.9.tar.gz
+cd pdbfixer-1.9
+python3.10 -m pip install .

@@ -1513,9 +1513,14 @@ def run(
     pop_size = population
     seq_len = sequence_length
     solution = []
+    solution_ids: List[int] = []
+    individual_id_counter = 0
+    individual_meta: Dict[str, Dict[str, Any]] = {}
     queries = generate_random_sequence_list(seq_len, pop_size)
     while(generation_number<max_gen):
-        
+        solution2 = []
+        solution2_ids = []
+
         # NSFGA-IIでの子集団の生成
         if not first_gen:
             function1_values = get_column_values(output_csv, solution, "negative_tm_score")
@@ -1526,13 +1531,33 @@ def run(
                 crowding_distance_values.append(crowding_distance(function1_values[:],function2_values[:],non_dominated_sorted_solution[i][:]))
             queries = generate_offspring_npmm(solution, count, config_path)
             solution2 = solution[:]
+            solution2_ids = solution_ids[:]
 
-        for query in queries:
+        if first_gen:
+            parent_ids_for_queries = [[] for _ in queries]
+        else:
+            parent_ids_for_queries = [[pid] for pid in solution_ids]
+
+        for query_idx, query in enumerate(queries):
             raw_jobname, query_sequence, a3m_lines = query
             if jobname_prefix is not None:
                 jobname = raw_jobname
             else:
                 jobname = raw_jobname
+
+            parents = parent_ids_for_queries[query_idx] if query_idx < len(parent_ids_for_queries) else []
+            if raw_jobname not in individual_meta:
+                individual_id_counter += 1
+                individual_meta[raw_jobname] = {
+                    "id": individual_id_counter,
+                    "parent_ids": parents,
+                    "generation": generation_number,
+                }
+            else:
+                individual_meta[raw_jobname]["generation"] = generation_number
+                individual_meta[raw_jobname]["parent_ids"] = parents
+
+            meta = individual_meta[raw_jobname]
 
             #######################################
             # check if job has already finished
@@ -1775,12 +1800,14 @@ def run(
                 negative_tm_score = calculate_default_tmscore(purpose_pdb, new_result_pdb, config_path)
                 recovery_score = calculate_recovery(query_sequence, config_path)
 
-                write_csv(query, negative_tm_score, negative_plddt_score, recovery_score, output_csv)
+                write_csv(query, negative_tm_score, negative_plddt_score, recovery_score, output_csv, meta)
 
                 if first_gen:
-                    solution.append(query_sequence)  
+                    solution.append(query_sequence)
+                    solution_ids.append(meta["id"])
                 else:
-                    solution2.append(query_sequence)             
+                    solution2.append(query_sequence)
+                    solution2_ids.append(meta["id"])
 
 
             if zip_results:
@@ -1817,6 +1844,7 @@ def run(
                 if (len(new_solution) == pop_size):
                     break
             solution = [solution2[i] for i in new_solution]
+            solution_ids = [solution2_ids[i] for i in new_solution]
 
         else:
             first_gen = False
