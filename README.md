@@ -116,3 +116,10 @@ python plot-code/fig4.py
 ```
 
 > Plots for all seeds are saved in `plot/fig4/`.
+
+## expriment_code/main.py
+for setting up environment variables and paths
+```bash
+chmod +x experiment_code/setup.sh
+. experiment_code/setup.sh
+```
