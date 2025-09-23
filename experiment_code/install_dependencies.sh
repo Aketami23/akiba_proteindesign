@@ -20,12 +20,16 @@ cd ..
 wget -q https://github.com/openmm/openmm/archive/refs/tags/8.1.1.tar.gz
 tar -xzf 8.1.1.tar.gz
 cd openmm-8.1.1
+rm -rf build
 mkdir build && cd build
+
 cmake .. \
   -DCMAKE_INSTALL_PREFIX=$HOME/apps/openmm/8.1.1 \
   -DPYTHON_EXECUTABLE=$(which python) \
   -DDOXYGEN_EXECUTABLE=$(which doxygen) \
   -DSWIG_EXECUTABLE=$(which swig)
+
 make -j8 install
 make PythonInstall
+
 cd ../..
