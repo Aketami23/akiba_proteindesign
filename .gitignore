@@ -15,3 +15,6 @@ plot-code/fig_fillter_fig1.py
 plot-code/fig_every5.py
 experiment_code/tsubame_script.sh
 experiment_code/run_process.py
+results.csv
+1QYS-Chain_A-TOP7-round_9_unrelaxed_rank_001_alphafold2_ptm_model_1_seed_000.pdb
+plot.ipynb

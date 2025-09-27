@@ -1797,7 +1797,7 @@ def run(
 
                 ## 以下で評価する
                 negative_plddt_score = calculate_plddt(new_result_json)
-                negative_tm_score = calculate_default_tmscore(purpose_pdb, new_result_pdb, config_path)
+                negative_tm_score = calculate_tmscore(purpose_pdb, new_result_pdb, config_path)
                 recovery_score = calculate_recovery(query_sequence, config_path)
 
                 write_csv(query, negative_tm_score, negative_plddt_score, recovery_score, output_csv, meta)
