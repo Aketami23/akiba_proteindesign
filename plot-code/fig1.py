@@ -25,8 +25,8 @@ for path in csv_files:
     if seq_col:
         df = df.drop_duplicates(subset=seq_col, keep='first')
 
-    df = df[df[tm_col] <= -0.953] if tm_col else df
-    df = df[df[plddt_col] <= -91.907] if plddt_col else df
+    df = df[df[tm_col] <= -0.95] if tm_col else df
+    df = df[df[plddt_col] <= -90] if plddt_col else df
 
     min_val = df[wt_col].min() if wt_col in df.columns else None
     if min_val is not None:
@@ -43,11 +43,66 @@ df_ours = pd.DataFrame({"Method": "Ours", "Recovery score": ours_min_wtr})
 df_pmpnn = pd.DataFrame({"Method": "ProteinMPNN", "Recovery score": pmpnn_wtr})
 df = pd.concat([df_ours, df_pmpnn], ignore_index=True)
 
-sns.stripplot(data=df, x="Method", y="Recovery score", hue="Method", size=4, jitter=0.05)
-sns.boxplot(data=df, x="Method", y="Recovery score", color='w', width=0.4, showfliers=False)
+colors = ["#56B4E9", "#009E73"]
+method_order = ["Ours", "ProteinMPNN"]
+palette = dict(zip(method_order, colors))
 
+# ストリッププロット（透明度と枠つき）
+sns.stripplot(
+    data=df,
+    x="Method",
+    y="Recovery score",
+    hue="Method",
+    order=method_order,
+    palette=palette,
+    size=4,
+    jitter=0.05,
+    dodge=False,
+    alpha=0.7,
+    edgecolor='k',
+    linewidth=0.5,
+    legend=False
+)
+
+# ボックスプロット（外れ値非表示・透明背景）
+sns.boxplot(
+    data=df,
+    x="Method",
+    y="Recovery score",
+    order=method_order,
+    color='white',
+    width=0.4,
+    showfliers=False,
+    boxprops=dict(facecolor='none', edgecolor='black'),
+    whiskerprops=dict(color='black'),
+    capprops=dict(color='black'),
+    medianprops=dict(color='black')
+)
+
+# 軸ラベル等
 plt.xlabel("")
 plt.ylabel(r"$\mathrm{f}_{\text{recovery}}$", fontsize=12)
 plt.tight_layout()
 plt.savefig("./plot/fig1.png", dpi=300)
 plt.close()
+
+print("Mean of negative_tm_score after filtering:")
+
+for path in csv_files:
+    df = pd.read_csv(path)
+    columns_lower = {c.lower(): c for c in df.columns}
+    tm_col = columns_lower['negative_tm_score']
+    plddt_col = columns_lower.get('plddt', None)
+    seq_col = columns_lower.get('query_sequence', None)
+
+    if seq_col:
+        df = df.drop_duplicates(subset=seq_col, keep='first')
+
+    df = df[df[tm_col] <= -0.90] if tm_col else df
+    df = df[df[plddt_col] <= -90] if plddt_col else df
+
+    if not df.empty:
+        mean_tm = df[tm_col].mean()
+        print(f"{path}: {mean_tm:.4f}")
+    else:
+        print(f"{path}: No data after filtering.")
