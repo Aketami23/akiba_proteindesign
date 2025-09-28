@@ -2,11 +2,11 @@ import random
 from config_utils import load_config
 from protein_mpnn.utils import initialize_model, run_inference
 
+amino_acids = "ACDEFGHIKLMNPQRSTVWY"
+
 def mutation(sequence: str, number: int, pop_count: int) -> tuple[str, str, None]:
-    amino_acids = "ACDEFGHIKLMNPQRSTVWY"
     results = []
     new_header = f"1QYS-Chain_A-TOP7-round_{number+ pop_count}"
-    print(f"new_header: {new_header}")
 
     seq_list = list(sequence)
     pos = random.randint(0, len(seq_list) - 1)
@@ -15,6 +15,21 @@ def mutation(sequence: str, number: int, pop_count: int) -> tuple[str, str, None
     results = (new_header, mutated_sequence, None)
     
     return results
+
+def mutation_N3(sequence: str, number: int, pop_count: int) -> tuple[str, str, None]:
+    seq_list = list(sequence)
+    pos = random.randint(0, len(seq_list) - 1)
+    mutation_indices = [i for i in [pos - 1, pos, pos + 1] if 0 <= i < len(seq_list)]
+
+    for i in mutation_indices:
+        original_aa = seq_list[i]
+        possible_mutations = [aa for aa in amino_acids if aa != original_aa]
+        seq_list[i] = random.choice(possible_mutations)
+
+    mutated_sequence = "".join(seq_list)
+    new_header = f"round_{number + pop_count}"
+
+    return (new_header, mutated_sequence, None)
 
 def mutation_with_mpnn(config_path: str, sequence: str, number: int, pop_count: int, model:str, device: any) -> tuple[str, str, None]:
     _config = load_config(config_path)
@@ -41,7 +56,7 @@ def generate_offspring(solution: list, count: int, config_path: str)-> list[tupl
     new_queries = []
     pop_count = 1
     for i in solution:
-        new_queries.append(mutation(i, count, pop_count))
+        new_queries.append(mutation_N3(i, count, pop_count))
         pop_count += 1
     return new_queries
 
@@ -57,11 +72,10 @@ def generate_offspring_npmm(solution: list, count: int, config_path: str) -> lis
     return new_queries
 
 def generate_random_sequence_list(seq_length: int, num_sequences: int) -> list[tuple[str, str, None]]:
-    amino_acids = "ACDEFGHIKLMNPQRSTVWY"
     result = []
     for i in range(1, num_sequences + 1):
         ## ハードコーディング
-        seq_id = f"1QYS-Chain_A-TOP7-round_{i}"
+        seq_id = f"round_{i}"
         sequence = ''.join(random.choices(amino_acids, k=seq_length))
         result.append((seq_id, sequence, None))
     return result

@@ -32,7 +32,15 @@ def initialize_model(config_path: str, seed: int, device: any = None)-> tuple[an
     
     return model, device
 
-def run_inference(config_path: str, model:any, init_seq: str, design_only_positions: list[int], num_seq_per_target: int, sampling_temp: float, seed: int, batch_size: int = 1, device: any = None)-> str:
+def run_inference(config_path: str, 
+                  model:any, init_seq: str, 
+                  design_only_positions: list[int], 
+                  num_seq_per_target: int, 
+                  sampling_temp: float, 
+                  seed: int, 
+                  batch_size: int = 1, 
+                  device: any = None)-> str:
+    
     torch.manual_seed(seed)
     random.seed(seed)
     np.random.seed(seed)   
