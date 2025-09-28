@@ -1529,7 +1529,7 @@ def run(
             crowding_distance_values=[]
             for i in range(0,len(non_dominated_sorted_solution)):
                 crowding_distance_values.append(crowding_distance(function1_values[:],function2_values[:],non_dominated_sorted_solution[i][:]))
-            queries = generate_offspring(solution, count, config_path)
+            queries = generate_offspring_npmm(solution, count, config_path)
             solution2 = solution[:]
             solution2_ids = solution_ids[:]
 
