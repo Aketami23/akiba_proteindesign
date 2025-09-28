@@ -1,4 +1,5 @@
 import random
+from config_utils import load_config
 from protein_mpnn.utils import initialize_model, run_inference
 
 def mutation(sequence: str, number: int, pop_count: int) -> tuple[str, str, None]:
@@ -16,7 +17,6 @@ def mutation(sequence: str, number: int, pop_count: int) -> tuple[str, str, None
     return results
 
 def mutation_with_mpnn(config_path: str, sequence: str, number: int, pop_count: int, model:str, device: any) -> tuple[str, str, None]:
-    from config_utils import load_config
     _config = load_config(config_path)
     result = ()
     new_header = f"1QYS-Chain_A-TOP7-round_{number + pop_count}"
@@ -37,7 +37,7 @@ def mutation_with_mpnn(config_path: str, sequence: str, number: int, pop_count: 
     result = (new_header, mutated_sequence, None)
     return result
 
-def generate_offspring(solution: any, count: int)-> list[tuple[str, str, None]]:
+def generate_offspring(solution: list, count: int, config_path: str)-> list[tuple[str, str, None]]:
     new_queries = []
     pop_count = 1
     for i in solution:
@@ -45,7 +45,7 @@ def generate_offspring(solution: any, count: int)-> list[tuple[str, str, None]]:
         pop_count += 1
     return new_queries
 
-def generate_offspring_npmm(solution: any, count: int, config_path: str) -> list[tuple[str, str, None]]:
+def generate_offspring_npmm(solution: list, count: int, config_path: str) -> list[tuple[str, str, None]]:
     new_queries = []
     pop_count = 1
     random.seed(None)

@@ -86,7 +86,7 @@ from evaluation_functions.plddt.utils import calculate_plddt
 from evaluation_functions.tmscore.utils import calculate_tmscore, calculate_default_tmscore
 from evaluation_functions.recovery.utils import calculate_recovery
 from nsga_ii.utils import index_of, sort_by_values, fast_non_dominated_sort, crowding_distance
-from nsga_ii.mutation_and_generation.utils import generate_offspring_npmm, generate_random_sequence_list
+from nsga_ii.mutation_and_generation.utils import generate_offspring_npmm, generate_offspring, generate_random_sequence_list
 from input_output.utils import write_csv, get_column_values
 
 ENV = {"TF_FORCE_UNIFIED_MEMORY":"1", "XLA_PYTHON_CLIENT_MEM_FRACTION":"4.0"}
@@ -1529,7 +1529,7 @@ def run(
             crowding_distance_values=[]
             for i in range(0,len(non_dominated_sorted_solution)):
                 crowding_distance_values.append(crowding_distance(function1_values[:],function2_values[:],non_dominated_sorted_solution[i][:]))
-            queries = generate_offspring_npmm(solution, count, config_path)
+            queries = generate_offspring(solution, count, config_path)
             solution2 = solution[:]
             solution2_ids = solution_ids[:]
 

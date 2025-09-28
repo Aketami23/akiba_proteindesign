@@ -18,3 +18,7 @@ experiment_code/run_process.py
 results.csv
 1QYS-Chain_A-TOP7-round_9_unrelaxed_rank_001_alphafold2_ptm_model_1_seed_000.pdb
 plot.ipynb
+evolutionary_path_0_to_300.gif
+evolutionary_path.gif
+results_2.csv
+experiment_code/test.ipynb
