@@ -51,7 +51,12 @@ def fast_non_dominated_sort(values1, values2):
     del front[len(front)-1]
     return front
 
-csv_files = natsorted(glob.glob('./data/*.csv'))
+# csv_files = natsorted(glob.glob('./data/*.csv'))
+
+# results_3.csvとdata/seed01.csvをプロットする
+
+csv_files = natsorted(glob.glob('./results_3.csv') + glob.glob('./data/seed01.csv'))
+
 if not csv_files:
     raise RuntimeError("No CSV files found")
 
@@ -105,6 +110,6 @@ plt.legend(bbox_to_anchor=(1, 1),
 """
 
 plt.tight_layout()
-plt.savefig("./plot/fig3.png", format="png", dpi=300)
-# plt.show()
+# plt.savefig("./plot/fig3.png", format="png", dpi=300)
+plt.show()
 plt.close()

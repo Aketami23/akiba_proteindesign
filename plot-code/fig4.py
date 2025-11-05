@@ -13,6 +13,7 @@ csv_files = natsorted(glob.glob('./data/*.csv'))
 if not csv_files:
     raise RuntimeError("No CSV files found")
 
+
 for csv_path in csv_files:
 
     name = Path(csv_path).stem

@@ -8,7 +8,7 @@ plt.style.use(['science', 'nature'])
 
 plt.rcParams["font.size"] = 10
 
-csv_files = sorted(glob.glob('./data/*.csv'))
+csv_files = sorted(glob.glob('data/*.csv'))
 if not csv_files:
     raise RuntimeError("No CSV files found")
 
@@ -32,7 +32,7 @@ for path in csv_files:
     if min_val is not None:
         ours_min_wtr.append(min_val)
 
-pmpnn_files = sorted(glob.glob('./pMPNNdata/*.csv'))
+pmpnn_files = sorted(glob.glob('./output_mpnn_03.csv'))
 pmpnn_wtr = []
 for path in pmpnn_files:
     df = pd.read_csv(path)
@@ -47,7 +47,6 @@ colors = ["#56B4E9", "#009E73"]
 method_order = ["Ours", "ProteinMPNN"]
 palette = dict(zip(method_order, colors))
 
-# ストリッププロット（透明度と枠つき）
 sns.stripplot(
     data=df,
     x="Method",
@@ -55,16 +54,15 @@ sns.stripplot(
     hue="Method",
     order=method_order,
     palette=palette,
-    size=4,
-    jitter=0.05,
+    size=2,
+    jitter=0.12,
     dodge=False,
     alpha=0.7,
     edgecolor='k',
-    linewidth=0.5,
+    linewidth=0.2,
     legend=False
 )
 
-# ボックスプロット（外れ値非表示・透明背景）
 sns.boxplot(
     data=df,
     x="Method",
@@ -83,7 +81,7 @@ sns.boxplot(
 plt.xlabel("")
 plt.ylabel(r"$\mathrm{f}_{\text{recovery}}$", fontsize=12)
 plt.tight_layout()
-plt.savefig("./plot/fig1.png", dpi=300)
+plt.savefig("./plot/fig1_demo.png", dpi=300)
 plt.close()
 
 print("Mean of negative_tm_score after filtering:")
