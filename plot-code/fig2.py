@@ -45,7 +45,7 @@ def fast_non_dominated_sort(values1, values2):
     return front
 
 csv_files = natsorted(glob.glob('./data/*.csv'))
-csv_files.append('./pMPNNdata/proteinMPNN03.csv')
+csv_files.append('./pMPNNdata/proteinMPNN10.csv')
 file_basenames = [os.path.splitext(os.path.basename(p))[0] for p in csv_files]
 MAX_PER_FILE = 100
 output_fasta = "./SSNplot/pareto_sequences.fasta"
@@ -111,5 +111,3 @@ if result.returncode == 0:
     print("pySSN.py ran successfully!")
 else:
     print(f"pySSN.py failed with return code: {result.returncode}")
-
-
