@@ -87,7 +87,7 @@ plt.ylabel(r'$\mathrm{f}_{\text{recovery}}$')
 plt.tick_params(labelsize=15)
 plt.legend(fontsize=15)
 plt.tight_layout()
-plt.savefig('fig1_b.png', dpi=400)
+# plt.savefig('fig1_b.png', dpi=400)
 plt.show()
 
 for label, area in hypervolume:
